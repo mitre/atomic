@@ -9,4 +9,3 @@
 .idea/*
 conf/secrets.yml
 atomic-red-team/*
-!atomic-red-team/.gitkeep

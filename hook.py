@@ -20,7 +20,7 @@ EXECUTORS = dict(command_prompt='cmd', sh='sh', powershell='psh', bash='sh')
 async def enable(services):
     data_svc = services.get('data_svc')
     repo_dir = 'plugins/atomic/atomic-red-team/'
-    if not os.listdir(repo_dir):
+    if not os.path.exists(repo_dir) or not os.listdir(repo_dir):
         repo_url = 'https://github.com/redcanaryco/atomic-red-team.git'
         check_call(['git', 'clone', '--depth', '1', repo_url, repo_dir], stdout=DEVNULL, stderr=STDOUT)
 
