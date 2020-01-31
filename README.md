@@ -1,6 +1,6 @@
 # CALDERA plugin: Atomic
 
-A plugin supplying CALDERA with TTPs and adversary profiles from the Atomic Red Canary project.
+A plugin supplying CALDERA with TTPs from the Atomic Red Canary project.
 
 ## Acknowledgements
 
