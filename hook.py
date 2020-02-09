@@ -12,6 +12,7 @@ from app.utility.base_world import BaseWorld
 name = 'Atomic'
 description = 'The collection of abilities in the Red Canary Atomic test project'
 address = None
+authentication = 'red'
 
 PLATFORMS = dict(windows='windows', macos='darwin', linux='linux')
 EXECUTORS = dict(command_prompt='cmd', sh='sh', powershell='psh', bash='sh')
