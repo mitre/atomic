@@ -46,5 +46,5 @@ async def _save_ability(data_svc, entries, test):
             Ability(ability_id=ability_id, tactic='redcanary', technique_id=entries['attack_technique'],
                     technique=entries['display_name'], name=test['name'], description=test['description'],
                     platform=PLATFORMS.get(p, 'unknown'), executor=EXECUTORS.get(test['executor']['name'], 'unknown'),
-                    test=encoded_command, cleanup=encoded_cleanup, requirements=[], parsers=[])
+                    test=encoded_command, cleanup=encoded_cleanup, requirements=[], parsers=[], variations=[])
         )
