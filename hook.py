@@ -19,6 +19,7 @@ PLATFORMS = dict(windows='windows', macos='darwin', linux='linux')
 EXECUTORS = dict(command_prompt='cmd', sh='sh', powershell='psh', bash='sh')
 RE_VARIABLE = re.compile('(#{(.*?)})', re.DOTALL)
 
+
 async def enable(services):
     data_svc = services.get('data_svc')
     repo_dir = 'plugins/atomic/atomic-red-team/'
@@ -45,7 +46,7 @@ async def enable(services):
 
 
 async def _use_default_inputs(test, string):
-    defaults = {key:str(val["default"]) for key, val in test.get("input_arguments", {}).items()}
+    defaults = {key: str(val["default"]) for key, val in test.get("input_arguments", {}).items()}
     while RE_VARIABLE.search(string):
         full_string, varname = RE_VARIABLE.search(string).groups()
         string = string.replace(full_string, defaults[varname])
