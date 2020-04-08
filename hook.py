@@ -40,18 +40,33 @@ async def enable(services):
                 except Exception as e:
                     logging.debug("ERROR:", filename, e)
                     errors += 1
-                    pass
     errors_output = f" and ran into {errors} errors" if errors else ""
     logging.debug(f'Ingested {at_ingested} abilities (out of {at_total}) from Atomic plugin{errors_output}')
 
 
-async def _use_default_inputs(test, string):
+def _use_default_inputs(test, string):
     defaults = {key: str(val["default"]) for key, val in test.get("input_arguments", {}).items()}
     while RE_VARIABLE.search(string):
         full_string, varname = RE_VARIABLE.search(string).groups()
         string = string.replace(full_string, defaults[varname])
 
     return string
+
+
+def _handle_multiline_commands(cmd):
+    return cmd.replace("\n", ";")
+
+
+async def _prepare_executor(test):
+    command = _use_default_inputs(test, test['executor']['command'])
+    command = _handle_multiline_commands(command)
+    cleanup = _use_default_inputs(test, test['executor'].get('cleanup_command', ''))
+    cleanup = _handle_multiline_commands(cleanup)
+
+    encoded_command = BaseWorld.encode_string(command)
+    encoded_cleanup = BaseWorld.encode_string(cleanup)
+
+    return (encoded_command, encoded_cleanup)
 
 
 async def _save_ability(data_svc, entries, test):
@@ -63,8 +78,7 @@ async def _save_ability(data_svc, entries, test):
         if test['executor']['name'] == 'manual':
             # this test is expected to be run manually by a human, no automation is provided
             continue
-        encoded_command = BaseWorld.encode_string(await _use_default_inputs(test, test['executor']['command']))
-        encoded_cleanup = BaseWorld.encode_string(await _use_default_inputs(test, test['executor'].get('cleanup_command', '')))
+        encoded_command, encoded_cleanup = await _prepare_executor(test)
         await data_svc.store(
             Ability(ability_id=ability_id, tactic='redcanary', technique_id=entries['attack_technique'],
                     technique=entries['display_name'], name=test['name'], description=test['description'],
