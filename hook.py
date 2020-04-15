@@ -10,6 +10,7 @@ import yaml
 from collections import defaultdict
 from subprocess import DEVNULL, STDOUT, check_call
 
+from app.objects.c_plugin import Plugin
 from app.utility.base_world import BaseWorld
 
 name = 'Atomic'
@@ -62,9 +63,11 @@ async def enable(services):
                     logging.debug("ERROR:", filename, e)
                     errors += 1
 
+    data_svc = services.get('data_svc')
+    await data_svc.load_data(plugins=(Plugin(name=name, description=description, address=address, access=access, data_dir=DATA_DIR),))
+
     errors_output = f" and ran into {errors} errors" if errors else ""
     logging.debug(f'Ingested {at_ingested} abilities (out of {at_total}) from Atomic plugin{errors_output}')
-    logging.debug('Restart caldera to access ingested abilities')
 
 
 def match_tactic_technique(mitre_json):
