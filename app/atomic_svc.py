@@ -156,10 +156,7 @@ class AtomicService(BaseService):
         at_total = 0
 
         tactics_li = self.technique_to_tactics.get(entries['attack_technique'], ['redcanary-unknown'])
-        if len(tactics_li) > 1:
-            tactic = 'multiple'
-        else:
-            tactic = tactics_li[0]
+        tactic = 'multiple' if len(tactics_li) > 1 else tactics_li[0]
 
         data = dict(
             id=ability_id,
