@@ -101,7 +101,7 @@ class AtomicService(BaseService):
         # attachment_path must be a POSIX path
         payload_name = os.path.basename(attachment_path)
         # to avoid collisions between payloads with the same name
-        payload_name = hashlib.md5(payload_name.encode()).hexdigest() + '_' + payload_name
+        payload_name = hashlib.md5(payload_name.encode()).hexdigest()[:6] + '_' + payload_name
         shutil.copyfile(attachment_path, os.path.join(self.payloads_dir, payload_name), follow_symlinks=False)
         return payload_name
 
