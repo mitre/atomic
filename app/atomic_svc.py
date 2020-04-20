@@ -107,7 +107,7 @@ class AtomicService(BaseService):
 
     def _use_default_inputs(self, entries, test, platform, string):
         payloads = []  # payloads induced by a variable
-        defaults = {key: val for key, val in test.get("input_arguments", {}).items()}
+        defaults = dict((key, val) for key, val in test.get("input_arguments", dict()).items())
         while RE_VARIABLE.search(string):
             full_string, varname = RE_VARIABLE.search(string).groups()
             if varname not in defaults:
@@ -161,17 +161,17 @@ class AtomicService(BaseService):
         else:
             tactic = tactics_li[0]
 
-        data = {
-            'id': ability_id,
-            'name': test['name'],
-            'description': test['description'],
-            'tactic': tactic,
-            'technique': {
-                'attack_id': entries['attack_technique'],
-                'name': entries['display_name']
-            },
-            'platforms': {}
-        }
+        data = dict(
+            id=ability_id,
+            name=test['name'],
+            description=test['description'],
+            tactic=tactic,
+            technique=dict(
+                attack_id=entries['attack_technique'],
+                name=entries['display_name']
+            ),
+            platforms=dict()
+        )
         for p in test['supported_platforms']:
             at_total += 1
             if test['executor']['name'] == 'manual':
@@ -182,10 +182,8 @@ class AtomicService(BaseService):
 
             executor = EXECUTORS.get(test['executor']['name'], 'unknown')
             platform = PLATFORMS.get(p, 'unknown')
-            ex_dict = {'command': command}
-            ex_dict['payloads'] = payloads
-            ex_dict['cleanup'] = cleanup
-            data['platforms'][platform] = {executor: ex_dict}
+            data['platforms'][platform] = dict()
+            data['platforms'][platform][executor] = dict(command=command, payloads=payloads, cleanup=cleanup)
 
             at_ingested += 1
 
