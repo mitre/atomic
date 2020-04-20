@@ -80,47 +80,47 @@ class AtomicService(BaseService):
         self.log.debug(f'Ingested {self.at_ingested} abilities (out of {self.at_total}) from Atomic plugin{errors_output}')
 
     def gen_match_tactic_technique(self, mitre_json):
-        """
-        Generator parsing the json from "enterprise-attack.json",
+        '''
+        Generator parsing the json from 'enterprise-attack.json',
         and returning couples (phase_name, external_id)
-        """
-        for obj in mitre_json.get("objects"):
-            if not obj.get("type") == "attack-pattern":
+        '''
+        for obj in mitre_json.get('objects'):
+            if not obj.get('type') == 'attack-pattern':
                 continue
-            for e in obj.get("external_references"):
-                if not e.get("source_name") == "mitre-attack":
+            for e in obj.get('external_references'):
+                if not e.get('source_name') == 'mitre-attack':
                     continue
-                external_id = e.get("external_id")
-                for kc in obj.get("kill_chain_phases"):
-                    if not kc.get("kill_chain_name") == "mitre-attack":
+                external_id = e.get('external_id')
+                for kc in obj.get('kill_chain_phases'):
+                    if not kc.get('kill_chain_name') == 'mitre-attack':
                         continue
-                    phase_name = kc.get("phase_name")
+                    phase_name = kc.get('phase_name')
                     yield (phase_name, external_id)
 
     def _handle_attachments(self, attachment_path):
         # attachment_path must be a POSIX path
         payload_name = os.path.basename(attachment_path)
         # to avoid collisions between payloads with the same name
-        payload_name = hashlib.md5(payload_name.encode()).hexdigest() + "_" + payload_name
+        payload_name = hashlib.md5(payload_name.encode()).hexdigest() + '_' + payload_name
         shutil.copyfile(attachment_path, os.path.join(self.payloads_dir, payload_name), follow_symlinks=False)
         return payload_name
 
     def _use_default_inputs(self, entries, test, platform, string):
         payloads = []  # payloads induced by a variable
-        defaults = dict((key, val) for key, val in test.get("input_arguments", dict()).items())
+        defaults = dict((key, val) for key, val in test.get('input_arguments', dict()).items())
         while RE_VARIABLE.search(string):
             full_string, varname = RE_VARIABLE.search(string).groups()
             if varname not in defaults:
                 # we did not find the default value of a variable
                 continue
-            default_var = str(defaults[varname]["default"])
+            default_var = str(defaults[varname]['default'])
 
             # the variable is a path and refers to something in the atomics folder,
             # possibly a payload
-            if "PathToAtomicsFolder" in default_var and defaults[varname]["type"].lower() == "path":
-                default_var = default_var.replace("PathToAtomicsFolder", "atomics")
-                if platform == "windows":
-                    default_var = default_var.replace("\\", "/")
+            if 'PathToAtomicsFolder' in default_var and defaults[varname]['type'].lower() == 'path':
+                default_var = default_var.replace('PathToAtomicsFolder', 'atomics')
+                if platform == 'windows':
+                    default_var = default_var.replace('\\', '/')
                 # TODO handle folders
                 full_path_attachement = os.path.join(self.repo_dir, default_var)
                 if os.path.isfile(full_path_attachement):
@@ -132,7 +132,7 @@ class AtomicService(BaseService):
         return string, payloads
 
     def _handle_multiline_commands(self, cmd):
-        return cmd.replace("\n", ";")
+        return cmd.replace('\n', ';')
 
     async def _prepare_executor(self, entries, test, platform):
         payloads = []
