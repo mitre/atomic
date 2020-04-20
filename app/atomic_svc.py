@@ -97,13 +97,36 @@ class AtomicService(BaseService):
                     phase_name = kc.get('phase_name')
                     yield (phase_name, external_id)
 
-    def _handle_attachments(self, attachment_path):
+    def _handle_attachment(self, attachment_path):
         # attachment_path must be a POSIX path
         payload_name = os.path.basename(attachment_path)
         # to avoid collisions between payloads with the same name
         payload_name = hashlib.md5(payload_name.encode()).hexdigest()[:6] + '_' + payload_name
         shutil.copyfile(attachment_path, os.path.join(self.payloads_dir, payload_name), follow_symlinks=False)
         return payload_name
+
+    def _catch_path_to_atomics_folder(self, string):
+        """
+        Catch a path to the the atomics/ folder, and handle it in the best way
+        possible. If needed, will import a payload.
+        """
+        regex = re.compile(r'\$PathToAtomicsFolder(?:((?:/[^/ \n]+)+)|((?:\\[^\\ \n]+)+))')
+        payloads = []
+        if regex.search(string):
+            fullpath = regex.search(string).group(0)
+            path_linux, path_windows = regex.search(string).groups()
+            if not path_linux:
+                path_linux = path_windows.replace('\\', '/')
+
+            # take path_linux from index 1, as it starts with /
+            path_linux = os.path.join(self.repo_dir, 'atomics', path_linux[1:])
+            if os.path.isfile(path_linux):
+                payload_name = self._handle_attachment(path_linux)
+                payloads.append(payload_name)
+
+                string = string.replace(fullpath, payload_name)
+
+        return string, payloads
 
     def _use_default_inputs(self, entries, test, platform, string):
         payloads = []  # payloads induced by a variable
@@ -124,7 +147,7 @@ class AtomicService(BaseService):
                 # TODO handle folders
                 full_path_attachement = os.path.join(self.repo_dir, default_var)
                 if os.path.isfile(full_path_attachement):
-                    default_var = self._handle_attachments(full_path_attachement)
+                    default_var = self._handle_attachment(full_path_attachement)
                     payloads.append(default_var)
 
             string = string.replace(full_string, default_var)
@@ -139,9 +162,13 @@ class AtomicService(BaseService):
 
         command, new_payloads = self._use_default_inputs(entries, test, platform, test['executor']['command'])
         payloads.extend(new_payloads)
+        command, new_payloads = self._catch_path_to_atomics_folder(command)
+        payloads.extend(new_payloads)
         command = self._handle_multiline_commands(command)
 
         cleanup, new_payloads = self._use_default_inputs(entries, test, platform, test['executor'].get('cleanup_command', ''))
+        payloads.extend(new_payloads)
+        cleanup, new_payloads = self._catch_path_to_atomics_folder(cleanup)
         payloads.extend(new_payloads)
         cleanup = self._handle_multiline_commands(cleanup)
 
