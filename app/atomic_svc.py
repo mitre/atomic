@@ -21,16 +21,27 @@ class AtomicService(BaseService):
     def __init__(self, services, plugin_self):
         self.data_svc = services.get('data_svc')
         self.log = self.add_service('atomic_svc', self)
+
+        # Atomic Red Team attacks don't come with the corresponding tactic (phase name)
+        # so we need to create a match between techniques and tactics.
+        # This variable is filled by self.populate_dict_techniques_tactics()
         self.technique_to_tactics = None
+
         self.repo_dir = os.path.join('plugins', 'atomic', 'atomic-red-team')
         self.payloads_dir = os.path.join('plugins', 'atomic', 'payloads')
-        self.plugin = plugin_self
+        self.plugin = plugin_self  # the atomic plugin
 
+        # abilities ingested are counted in term of platform blocks created
         self.at_ingested = 0
         self.at_total = 0
+
         self.errors = 0
 
     async def clone_atomic_red_team_repo(self, repo_url=None):
+        '''
+        Clone the Atomic Red Team repository. You can use a specific url via
+        the `repo_url` parameter (eg. if you want to use a fork).
+        '''
         if not repo_url:
             repo_url = 'https://github.com/redcanaryco/atomic-red-team.git'
 
@@ -42,19 +53,47 @@ class AtomicService(BaseService):
             os.mkdir(self.payloads_dir)
 
     async def populate_dict_techniques_tactics(self, entreprise_attack_path=None):
+        '''
+        Populate internal dictionary used to match techniques to corresponding tactics.
+        By default, use the file 'enterprise-attack.json' located in the Atomic Red Team repository.
+        You can use a specific version of this file by passing its path with the `entreprise_attack_path`
+        parameter.
+        '''
         self.technique_to_tactics = defaultdict(list)
         if not entreprise_attack_path:
             entreprise_attack_path = os.path.join(self.repo_dir, 'atomic_red_team', 'enterprise-attack.json')
 
-        # Atomic Red Team attacks don't come with the corresponding tactic (phase name)
-        # so we need to create a match between techniques and tactics.
         with open(entreprise_attack_path, 'r') as f:
             mitre_json = json.load(f)
 
-        for phase_name, external_id in self.gen_match_tactic_technique(mitre_json):
+        for phase_name, external_id in self._gen_single_match_tactic_technique(mitre_json):
             self.technique_to_tactics[external_id].append(phase_name)
 
+    def _gen_single_match_tactic_technique(self, mitre_json):
+        '''
+        Generator parsing the json from 'enterprise-attack.json',
+        and returning couples (phase_name, external_id)
+        '''
+        for obj in mitre_json.get('objects'):
+            if not obj.get('type') == 'attack-pattern':
+                continue
+            for e in obj.get('external_references'):
+                if not e.get('source_name') == 'mitre-attack':
+                    continue
+                external_id = e.get('external_id')
+                for kc in obj.get('kill_chain_phases'):
+                    if not kc.get('kill_chain_name') == 'mitre-attack':
+                        continue
+                    phase_name = kc.get('phase_name')
+                    yield (phase_name, external_id)
+
     async def populate_data_directory(self, path_yaml=None):
+        '''
+        Populate the 'data' directory with the Atomic Red Team abilities.
+        These data will be usable by caldera after importation.
+        You can specify where the yaml files to import are located with the `path_yaml` parameter.
+        By default, read the yaml files in the atomics/ directory inside the Atomic Red Team repository.
+        '''
         if not self.technique_to_tactics:
             await self.populate_dict_techniques_tactics()
 
@@ -74,28 +113,11 @@ class AtomicService(BaseService):
                         self.log.debug('ERROR:', filename, e)
                         self.errors += 1
 
+        # Reload data from the plugin, as we created abilities in the 'data' directory.
         await self.data_svc.load_data(plugins=(self.plugin,))
 
         errors_output = f' and ran into {self.errors} errors' if self.errors else ''
         self.log.debug(f'Ingested {self.at_ingested} abilities (out of {self.at_total}) from Atomic plugin{errors_output}')
-
-    def gen_match_tactic_technique(self, mitre_json):
-        '''
-        Generator parsing the json from 'enterprise-attack.json',
-        and returning couples (phase_name, external_id)
-        '''
-        for obj in mitre_json.get('objects'):
-            if not obj.get('type') == 'attack-pattern':
-                continue
-            for e in obj.get('external_references'):
-                if not e.get('source_name') == 'mitre-attack':
-                    continue
-                external_id = e.get('external_id')
-                for kc in obj.get('kill_chain_phases'):
-                    if not kc.get('kill_chain_name') == 'mitre-attack':
-                        continue
-                    phase_name = kc.get('phase_name')
-                    yield (phase_name, external_id)
 
     def _handle_attachment(self, attachment_path):
         # attachment_path must be a POSIX path
@@ -106,10 +128,10 @@ class AtomicService(BaseService):
         return payload_name
 
     def _catch_path_to_atomics_folder(self, string):
-        """
+        '''
         Catch a path to the the atomics/ folder, and handle it in the best way
         possible. If needed, will import a payload.
-        """
+        '''
         regex = re.compile(r'\$PathToAtomicsFolder(?:((?:/[^/ \n]+)+)|((?:\\[^\\ \n]+)+))')
         payloads = []
         if regex.search(string):
@@ -157,20 +179,29 @@ class AtomicService(BaseService):
     def _handle_multiline_commands(self, cmd):
         return cmd.replace('\n', ';')
 
+    async def _prepare_cmd(self, entries, test, platform, cmd):
+        '''
+        Handle a command or a cleanup (both are formatted the same way), given in `cmd`.
+        Return the cmd formatted as needed and payloads we need to take into account.
+        '''
+        payloads = []
+        cmd, new_payloads = self._use_default_inputs(entries, test, platform, cmd)
+        payloads.extend(new_payloads)
+        cmd, new_payloads = self._catch_path_to_atomics_folder(cmd)
+        payloads.extend(new_payloads)
+        cmd = self._handle_multiline_commands(cmd)
+        return cmd, payloads
+
     async def _prepare_executor(self, entries, test, platform):
+        '''
+        Prepare the command and cleanup, and return them with the needed payloads.
+        '''
         payloads = []
 
-        command, new_payloads = self._use_default_inputs(entries, test, platform, test['executor']['command'])
-        payloads.extend(new_payloads)
-        command, new_payloads = self._catch_path_to_atomics_folder(command)
-        payloads.extend(new_payloads)
-        command = self._handle_multiline_commands(command)
-
-        cleanup, new_payloads = self._use_default_inputs(entries, test, platform, test['executor'].get('cleanup_command', ''))
-        payloads.extend(new_payloads)
-        cleanup, new_payloads = self._catch_path_to_atomics_folder(cleanup)
-        payloads.extend(new_payloads)
-        cleanup = self._handle_multiline_commands(cleanup)
+        command, payloads_command = await self._prepare_cmd(entries, test, platform, test['executor']['command'])
+        cleanup, payloads_cleanup = await self._prepare_cmd(entries, test, platform, test['executor'].get('cleanup_command', ''))
+        payloads.extend(payloads_command)
+        payloads.extend(payloads_cleanup)
 
         # TODO handle ART local files in command
         # eg. https://github.com/redcanaryco/atomic-red-team/blob/a956d4640f9186a7bd36d16a63f6d39433af5f1d/atomics/T1022/T1022.yaml
