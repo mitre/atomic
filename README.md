@@ -10,6 +10,9 @@ A plugin supplying CALDERA with TTPs from the Atomic Red Team project.
 
 - ART tests only specify techniques they address. This plugin creates a mapping and import abilities under the corresponding tactic.  Yet sometimes multiple tactics are a match, and we do not know which one the test addresses. This will be fixed in the future thanks to the ATT&CK sub-techniques. As of now, we use a new tactic category called "multiple".
 
+## Known issues
+- When a command/cleanup expands over multiple lines with one of them being a comment, it messes up the whole command/cleanup (as we reduce multiple lines into one with semi-colons).
+
 ## Acknowledgements
 
 - [Atomic Red Team](https://github.com/redcanaryco/atomic-red-team)
