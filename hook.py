@@ -12,7 +12,7 @@ data_dir = os.path.join('plugins', 'atomic', 'data')
 
 async def enable(services):
     # we only ingest data once, and save new abilities in the data/ folder of the plugin
-    if not (os.path.exists(data_dir) and os.listdir(data_dir)):
-        atomic_svc = AtomicService(services)
+    if "abilities" not in os.listdir(data_dir):
+        atomic_svc = AtomicService()
         await atomic_svc.clone_atomic_red_team_repo()
         await atomic_svc.populate_data_directory()

@@ -20,7 +20,7 @@ PREFIX_HASH_LEN = 6
 
 class AtomicService(BaseService):
 
-    def __init__(self, services):
+    def __init__(self):
         self.log = self.add_service('atomic_svc', self)
 
         # Atomic Red Team attacks don't come with the corresponding tactic (phase name)
@@ -76,7 +76,8 @@ class AtomicService(BaseService):
 
     """ PRIVATE """
 
-    def _gen_single_match_tactic_technique(self, mitre_json):
+    @staticmethod
+    def _gen_single_match_tactic_technique(mitre_json):
         """
         Generator parsing the json from 'enterprise-attack.json',
         and returning couples (phase_name, external_id)
@@ -166,7 +167,7 @@ class AtomicService(BaseService):
     def _handle_multiline_commands(cmd):
         return cmd.replace('\n', ';')
 
-    async def _prepare_cmd(self, entries, test, platform, cmd):
+    async def _prepare_cmd(self, test, platform, cmd):
         """
         Handle a command or a cleanup (both are formatted the same way), given in `cmd`.
         Return the cmd formatted as needed and payloads we need to take into account.
@@ -185,8 +186,8 @@ class AtomicService(BaseService):
         """
         payloads = []
 
-        command, payloads_command = await self._prepare_cmd(entries, test, platform, test['executor']['command'])
-        cleanup, payloads_cleanup = await self._prepare_cmd(entries, test, platform, test['executor'].get('cleanup_command', ''))
+        command, payloads_command = await self._prepare_cmd(test, platform, test['executor']['command'])
+        cleanup, payloads_cleanup = await self._prepare_cmd(test, platform, test['executor'].get('cleanup_command', ''))
         payloads.extend(payloads_command)
         payloads.extend(payloads_cleanup)
 
