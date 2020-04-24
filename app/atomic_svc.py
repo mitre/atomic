@@ -24,7 +24,7 @@ class AtomicService(BaseService):
 
         # Atomic Red Team attacks don't come with the corresponding tactic (phase name)
         # so we need to create a match between techniques and tactics.
-        # This variable is filled by self.populate_dict_techniques_tactics()
+        # This variable is filled by self._populate_dict_techniques_tactics()
         self.technique_to_tactics = None
 
         self.atomic_dir = os.path.join('plugins', 'atomic')
@@ -49,45 +49,6 @@ class AtomicService(BaseService):
         if not os.path.exists(self.repo_dir) or not os.listdir(self.repo_dir):
             check_call(['git', 'clone', '--depth', '1', repo_url, self.repo_dir], stdout=DEVNULL, stderr=STDOUT)
 
-    async def init_payload_dir(self):
-        if not os.path.exists(self.payloads_dir):
-            os.mkdir(self.payloads_dir)
-
-    async def populate_dict_techniques_tactics(self, entreprise_attack_path=None):
-        '''
-        Populate internal dictionary used to match techniques to corresponding tactics.
-        By default, use the file 'enterprise-attack.json' located in the Atomic Red Team repository.
-        You can use a specific version of this file by passing its path with the `entreprise_attack_path`
-        parameter.
-        '''
-        self.technique_to_tactics = defaultdict(list)
-        if not entreprise_attack_path:
-            entreprise_attack_path = os.path.join(self.repo_dir, 'atomic_red_team', 'enterprise-attack.json')
-
-        with open(entreprise_attack_path, 'r') as f:
-            mitre_json = json.load(f)
-
-        for phase_name, external_id in self._gen_single_match_tactic_technique(mitre_json):
-            self.technique_to_tactics[external_id].append(phase_name)
-
-    def _gen_single_match_tactic_technique(self, mitre_json):
-        '''
-        Generator parsing the json from 'enterprise-attack.json',
-        and returning couples (phase_name, external_id)
-        '''
-        for obj in mitre_json.get('objects'):
-            if not obj.get('type') == 'attack-pattern':
-                continue
-            for e in obj.get('external_references'):
-                if not e.get('source_name') == 'mitre-attack':
-                    continue
-                external_id = e.get('external_id')
-                for kc in obj.get('kill_chain_phases'):
-                    if not kc.get('kill_chain_name') == 'mitre-attack':
-                        continue
-                    phase_name = kc.get('phase_name')
-                    yield (phase_name, external_id)
-
     async def populate_data_directory(self, path_yaml=None):
         '''
         Populate the 'data' directory with the Atomic Red Team abilities.
@@ -96,9 +57,9 @@ class AtomicService(BaseService):
         By default, read the yaml files in the atomics/ directory inside the Atomic Red Team repository.
         '''
         if not self.technique_to_tactics:
-            await self.populate_dict_techniques_tactics()
+            await self._populate_dict_techniques_tactics()
 
-        await self.init_payload_dir()
+        await self._init_payload_dir()
 
         if not path_yaml:
             path_yaml = os.path.join(self.repo_dir, 'atomics', '**', 'T*.yaml')
@@ -122,6 +83,47 @@ class AtomicService(BaseService):
 
         errors_output = f' and ran into {self.errors} errors' if self.errors else ''
         self.log.debug(f'Ingested {self.at_ingested} abilities (out of {self.at_total}) from Atomic plugin{errors_output}')
+
+    """ PRIVATE """
+
+    async def _init_payload_dir(self):
+        if not os.path.exists(self.payloads_dir):
+            os.mkdir(self.payloads_dir)
+
+    def _gen_single_match_tactic_technique(self, mitre_json):
+        '''
+        Generator parsing the json from 'enterprise-attack.json',
+        and returning couples (phase_name, external_id)
+        '''
+        for obj in mitre_json.get('objects'):
+            if not obj.get('type') == 'attack-pattern':
+                continue
+            for e in obj.get('external_references'):
+                if not e.get('source_name') == 'mitre-attack':
+                    continue
+                external_id = e.get('external_id')
+                for kc in obj.get('kill_chain_phases'):
+                    if not kc.get('kill_chain_name') == 'mitre-attack':
+                        continue
+                    phase_name = kc.get('phase_name')
+                    yield (phase_name, external_id)
+
+    async def _populate_dict_techniques_tactics(self, entreprise_attack_path=None):
+        '''
+        Populate internal dictionary used to match techniques to corresponding tactics.
+        By default, use the file 'enterprise-attack.json' located in the Atomic Red Team repository.
+        You can use a specific version of this file by passing its path with the `entreprise_attack_path`
+        parameter.
+        '''
+        self.technique_to_tactics = defaultdict(list)
+        if not entreprise_attack_path:
+            entreprise_attack_path = os.path.join(self.repo_dir, 'atomic_red_team', 'enterprise-attack.json')
+
+        with open(entreprise_attack_path, 'r') as f:
+            mitre_json = json.load(f)
+
+        for phase_name, external_id in self._gen_single_match_tactic_technique(mitre_json):
+            self.technique_to_tactics[external_id].append(phase_name)
 
     def _handle_attachment(self, attachment_path):
         # attachment_path must be a POSIX path
