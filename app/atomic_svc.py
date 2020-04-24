@@ -18,7 +18,7 @@ RE_VARIABLE = re.compile('(#{(.*?)})', re.DOTALL)
 
 
 class AtomicService(BaseService):
-    def __init__(self, services, plugin_self):
+    def __init__(self, services):
         self.data_svc = services.get('data_svc')
         self.log = self.add_service('atomic_svc', self)
 
@@ -27,9 +27,10 @@ class AtomicService(BaseService):
         # This variable is filled by self.populate_dict_techniques_tactics()
         self.technique_to_tactics = None
 
-        self.repo_dir = os.path.join('plugins', 'atomic', 'atomic-red-team')
-        self.payloads_dir = os.path.join('plugins', 'atomic', 'payloads')
-        self.plugin = plugin_self  # the atomic plugin
+        self.atomic_dir = os.path.join('plugins', 'atomic')
+        self.repo_dir = os.path.join(self.atomic_dir, 'atomic-red-team')
+        self.data_dir = os.path.join(self.atomic_dir, 'data')
+        self.payloads_dir = os.path.join(self.atomic_dir, 'payloads')
 
         # abilities ingested are counted in term of platform blocks created
         self.at_ingested = 0
@@ -113,8 +114,11 @@ class AtomicService(BaseService):
                         self.log.debug('ERROR:', filename, e)
                         self.errors += 1
 
-        # Reload data from the plugin, as we created abilities in the 'data' directory.
-        await self.data_svc.load_data(plugins=(self.plugin,))
+        # Update data for the plugin, as we created the 'data' directory.
+        plugins = await self.data_svc.locate('plugins')
+        for p in plugins:
+            if p.name == 'atomic':
+                p.data_dir = self.data_dir
 
         errors_output = f' and ran into {self.errors} errors' if self.errors else ''
         self.log.debug(f'Ingested {self.at_ingested} abilities (out of {self.at_total}) from Atomic plugin{errors_output}')
@@ -243,7 +247,7 @@ class AtomicService(BaseService):
             at_ingested += 1
 
         if data['platforms']:  # this might be empty, if so there's nothing useful to save
-            d = os.path.join(self.plugin.data_dir, 'abilities', tactic)
+            d = os.path.join(self.data_dir, 'abilities', tactic)
             if not os.path.exists(d):
                 os.makedirs(d)
             file_path = os.path.join(d, '%s.yml' % ability_id)
