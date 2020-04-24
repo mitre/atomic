@@ -229,18 +229,16 @@ class AtomicService(BaseService):
         )
         for p in test['supported_platforms']:
             at_total += 1
-            if test['executor']['name'] == 'manual':
-                # this test is expected to be run manually by a human, no automation is provided
-                continue
+            if test['executor']['name'] != 'manual':
+                # manual tests are expected to be run manually by a human, no automation is provided
+                command, cleanup, payloads = await self._prepare_executor(entries, test, p)
 
-            command, cleanup, payloads = await self._prepare_executor(entries, test, p)
+                executor = EXECUTORS.get(test['executor']['name'], 'unknown')
+                platform = PLATFORMS.get(p, 'unknown')
+                data['platforms'][platform] = dict()
+                data['platforms'][platform][executor] = dict(command=command, payloads=payloads, cleanup=cleanup)
 
-            executor = EXECUTORS.get(test['executor']['name'], 'unknown')
-            platform = PLATFORMS.get(p, 'unknown')
-            data['platforms'][platform] = dict()
-            data['platforms'][platform][executor] = dict(command=command, payloads=payloads, cleanup=cleanup)
-
-            at_ingested += 1
+                at_ingested += 1
 
         if data['platforms']:  # this might be empty, if so there's nothing useful to save
             d = os.path.join(self.data_dir, 'abilities', tactic)
