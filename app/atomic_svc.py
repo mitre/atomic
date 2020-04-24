@@ -133,25 +133,31 @@ class AtomicService(BaseService):
         shutil.copyfile(attachment_path, os.path.join(self.payloads_dir, payload_name), follow_symlinks=False)
         return payload_name
 
-    def _catch_path_to_atomics_folder(self, string):
+    @staticmethod
+    def _normalize_path(path, platform):
+        if platform == PLATFORMS['windows']:
+            return path.replace('\\', '/')
+        else:
+            return path
+
+    def _catch_path_to_atomics_folder(self, string, platform):
         '''
         Catch a path to the the atomics/ folder, and handle it in the best way
         possible. If needed, will import a payload.
         '''
-        regex = re.compile(r'\$PathToAtomicsFolder(?:((?:/[^/ \n]+)+)|((?:\\[^\\ \n]+)+))')
+        regex = re.compile(r'\$?PathToAtomicsFolder((?:/[^/ \n]+)+|(?:\\[^\\ \n]+)+)')
         payloads = []
         if regex.search(string):
-            fullpath = regex.search(string).group(0)
-            path_linux, path_windows = regex.search(string).groups()
-            if not path_linux:
-                path_linux = path_windows.replace('\\', '/')
+            fullpath, path = regex.search(string).group(0, 1)
+            path = self._normalize_path(path, platform)
 
-            # take path_linux from index 1, as it starts with /
-            path_linux = os.path.join(self.repo_dir, 'atomics', path_linux[1:])
-            if os.path.isfile(path_linux):
-                payload_name = self._handle_attachment(path_linux)
+            # take path from index 1, as it starts with /
+            path = os.path.join(self.repo_dir, 'atomics', path[1:])
+
+            # TODO handle folders
+            if os.path.isfile(path):
+                payload_name = self._handle_attachment(path)
                 payloads.append(payload_name)
-
                 string = string.replace(fullpath, payload_name)
 
         return string, payloads
@@ -160,25 +166,13 @@ class AtomicService(BaseService):
         payloads = []  # payloads induced by a variable
         defaults = dict((key, val) for key, val in test.get('input_arguments', dict()).items())
         while RE_VARIABLE.search(string):
-            full_string, varname = RE_VARIABLE.search(string).groups()
-            if varname not in defaults:
-                # we did not find the default value of a variable
-                continue
-            default_var = str(defaults[varname]['default'])
+            full_var_string, varname = RE_VARIABLE.search(string).groups()
+            default_var = str(defaults.get(varname, dict()).get('default'))
 
-            # the variable is a path and refers to something in the atomics folder,
-            # possibly a payload
-            if 'PathToAtomicsFolder' in default_var and defaults[varname]['type'].lower() == 'path':
-                default_var = default_var.replace('PathToAtomicsFolder', 'atomics')
-                if platform == 'windows':
-                    default_var = default_var.replace('\\', '/')
-                # TODO handle folders
-                full_path_attachement = os.path.join(self.repo_dir, default_var)
-                if os.path.isfile(full_path_attachement):
-                    default_var = self._handle_attachment(full_path_attachement)
-                    payloads.append(default_var)
-
-            string = string.replace(full_string, default_var)
+            if default_var:  # we found the default value of a variable
+                default_var, new_payloads = self._catch_path_to_atomics_folder(default_var, platform)
+                payloads.extend(new_payloads)
+                string = string.replace(full_var_string, default_var)
 
         return string, payloads
 
@@ -193,7 +187,7 @@ class AtomicService(BaseService):
         payloads = []
         cmd, new_payloads = self._use_default_inputs(entries, test, platform, cmd)
         payloads.extend(new_payloads)
-        cmd, new_payloads = self._catch_path_to_atomics_folder(cmd)
+        cmd, new_payloads = self._catch_path_to_atomics_folder(cmd, platform)
         payloads.extend(new_payloads)
         cmd = self._handle_multiline_commands(cmd)
         return cmd, payloads
