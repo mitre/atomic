@@ -19,7 +19,6 @@ RE_VARIABLE = re.compile('(#{(.*?)})', re.DOTALL)
 
 class AtomicService(BaseService):
     def __init__(self, services):
-        self.data_svc = services.get('data_svc')
         self.log = self.add_service('atomic_svc', self)
 
         # Atomic Red Team attacks don't come with the corresponding tactic (phase name)
@@ -59,8 +58,6 @@ class AtomicService(BaseService):
         if not self.technique_to_tactics:
             await self._populate_dict_techniques_tactics()
 
-        await self._init_payload_dir()
-
         if not path_yaml:
             path_yaml = os.path.join(self.repo_dir, 'atomics', '**', 'T*.yaml')
 
@@ -75,20 +72,10 @@ class AtomicService(BaseService):
                         self.log.debug('ERROR:', filename, e)
                         self.errors += 1
 
-        # Update data for the plugin, as we created the 'data' directory.
-        plugins = await self.data_svc.locate('plugins')
-        for p in plugins:
-            if p.name == 'atomic':
-                p.data_dir = self.data_dir
-
         errors_output = f' and ran into {self.errors} errors' if self.errors else ''
         self.log.debug(f'Ingested {self.at_ingested} abilities (out of {self.at_total}) from Atomic plugin{errors_output}')
 
     """ PRIVATE """
-
-    async def _init_payload_dir(self):
-        if not os.path.exists(self.payloads_dir):
-            os.mkdir(self.payloads_dir)
 
     def _gen_single_match_tactic_technique(self, mitre_json):
         '''
