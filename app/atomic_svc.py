@@ -164,10 +164,14 @@ class AtomicService(BaseService):
         return string_to_analyse, payloads
 
     @staticmethod
-    def _handle_multiline_commands(cmd):
-        return cmd.replace('\n', ';')
+    def _handle_multiline_commands(cmd, executor):
+        li = cmd.strip().split("\n")
+        if executor == "cmd":
+            return " && ".join(li)
+        else:
+            return "; ".join(li)
 
-    async def _prepare_cmd(self, test, platform, cmd):
+    async def _prepare_cmd(self, test, platform, executor, cmd):
         """
         Handle a command or a cleanup (both are formatted the same way), given in `cmd`.
         Return the cmd formatted as needed and payloads we need to take into account.
@@ -177,17 +181,17 @@ class AtomicService(BaseService):
         payloads.extend(new_payloads)
         cmd, new_payloads = self._catch_path_to_atomics_folder(cmd, platform)
         payloads.extend(new_payloads)
-        cmd = self._handle_multiline_commands(cmd)
+        cmd = self._handle_multiline_commands(cmd, executor)
         return cmd, payloads
 
-    async def _prepare_executor(self, entries, test, platform):
+    async def _prepare_executor(self, test, platform, executor):
         """
         Prepare the command and cleanup, and return them with the needed payloads.
         """
         payloads = []
 
-        command, payloads_command = await self._prepare_cmd(test, platform, test['executor']['command'])
-        cleanup, payloads_cleanup = await self._prepare_cmd(test, platform, test['executor'].get('cleanup_command', ''))
+        command, payloads_command = await self._prepare_cmd(test, platform, executor, test['executor']['command'])
+        cleanup, payloads_cleanup = await self._prepare_cmd(test, platform, executor, test['executor'].get('cleanup_command', ''))
         payloads.extend(payloads_command)
         payloads.extend(payloads_cleanup)
 
@@ -216,10 +220,10 @@ class AtomicService(BaseService):
         for p in test['supported_platforms']:
             if test['executor']['name'] != 'manual':
                 # manual tests are expected to be run manually by a human, no automation is provided
-                command, cleanup, payloads = await self._prepare_executor(entries, test, p)
-
                 executor = EXECUTORS.get(test['executor']['name'], 'unknown')
                 platform = PLATFORMS.get(p, 'unknown')
+
+                command, cleanup, payloads = await self._prepare_executor(test, platform, executor)
                 data['platforms'][platform] = dict()
                 data['platforms'][platform][executor] = dict(command=command, payloads=payloads, cleanup=cleanup)
 
