@@ -67,7 +67,7 @@ class AtomicService(BaseService):
                     try:
                         if await self._save_ability(entries, test):
                             at_ingested += 1
-                    except Exception as e:
+                    except:
                         errors += 1
 
         errors_output = f' and ran into {errors} errors' if errors else ''
