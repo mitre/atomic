@@ -67,7 +67,7 @@ class AtomicService(BaseService):
                     try:
                         if await self._save_ability(entries, test):
                             at_ingested += 1
-                    except Exception as e:
+                    except:
                         errors += 1
 
         errors_output = f' and ran into {errors} errors' if errors else ''
@@ -81,14 +81,14 @@ class AtomicService(BaseService):
         Generator parsing the json from 'enterprise-attack.json',
         and returning couples (phase_name, external_id)
         """
-        for obj in mitre_json.get('objects'):
+        for obj in mitre_json.get('objects', list()):
             if not obj.get('type') == 'attack-pattern':
                 continue
-            for e in obj.get('external_references'):
+            for e in obj.get('external_references', list()):
                 if not e.get('source_name') == 'mitre-attack':
                     continue
                 external_id = e.get('external_id')
-                for kc in obj.get('kill_chain_phases'):
+                for kc in obj.get('kill_chain_phases', list()):
                     if not kc.get('kill_chain_name') == 'mitre-attack':
                         continue
                     phase_name = kc.get('phase_name')
