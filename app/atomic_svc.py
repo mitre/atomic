@@ -11,6 +11,7 @@ from subprocess import DEVNULL, STDOUT, check_call
 
 from app.utility.base_world import BaseWorld
 from app.utility.base_service import BaseService
+from app.objects.c_agent import Agent
 
 PLATFORMS = dict(windows='windows', macos='darwin', linux='linux')
 EXECUTORS = dict(command_prompt='cmd', sh='sh', powershell='psh', bash='sh')
@@ -42,7 +43,9 @@ class AtomicService(BaseService):
             repo_url = 'https://github.com/redcanaryco/atomic-red-team.git'
 
         if not os.path.exists(self.repo_dir) or not os.listdir(self.repo_dir):
+            self.log.debug('cloning repo %s' % repo_url)
             check_call(['git', 'clone', '--depth', '1', repo_url, self.repo_dir], stdout=DEVNULL, stderr=STDOUT)
+            self.log.debug('clone complete')
 
     async def populate_data_directory(self, path_yaml=None):
         """
@@ -62,12 +65,13 @@ class AtomicService(BaseService):
         errors = 0
         for filename in glob.iglob(path_yaml):
             for entries in BaseWorld.strip_yml(filename):
-                for test in entries['atomic_tests']:
+                for test in entries.get('atomic_tests'):
                     at_total += 1
                     try:
                         if await self._save_ability(entries, test):
                             at_ingested += 1
-                    except:
+                    except Exception as e:
+                        self.log.debug(e)
                         errors += 1
 
         errors_output = f' and ran into {errors} errors' if errors else ''
@@ -144,13 +148,19 @@ class AtomicService(BaseService):
 
         return string_to_analyse, payloads
 
+    def _has_reserved_parameter(self, command):
+        return any(reserved in command for reserved in Agent.RESERVED)
+
     def _use_default_inputs(self, test, platform, string_to_analyse):
         """
         Look if variables are used in `string_to_analyse`, and if any variable was given
         a default value, use it.
         """
+
         payloads = []
         defaults = dict((key, val) for key, val in test.get('input_arguments', dict()).items())
+        if self._has_reserved_parameter(string_to_analyse):
+            return string_to_analyse, payloads
         while RE_VARIABLE.search(string_to_analyse):
             full_var_str, varname = RE_VARIABLE.search(string_to_analyse).groups()
             default_var = str(defaults.get(varname, dict()).get('default'))
