@@ -30,7 +30,7 @@ class AtomicService(BaseService):
         self.technique_to_tactics = defaultdict(list)
 
         self.atomic_dir = os.path.join('plugins', 'atomic')
-        self.repo_dir = os.path.join(self.atomic_dir, 'atomic-red-team')
+        self.repo_dir = os.path.join(self.atomic_dir, 'data/atomic-red-team')
         self.data_dir = os.path.join(self.atomic_dir, 'data')
         self.payloads_dir = os.path.join(self.atomic_dir, 'payloads')
 
