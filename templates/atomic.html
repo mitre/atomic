@@ -1,0 +1,27 @@
+<div id="atomic-section" class="section-profile">
+    <div class="row">
+        <div class="topleft duk-icon"><img onclick="removeSection('atomic-section')" src="/gui/img/x.png"></div>
+
+        <!-- sidebar -->
+        <div class="column section-profile">
+            <h1>{{name}}</h1>
+            <p>{{description}}</p>
+        </div>
+
+        <!-- main content -->
+        <div class="column" style="flex:67%;padding:15px;text-align: left">
+            <div class="row" style="border: none;margin: -45px -50px -50px;background-image:none">
+                <div class="column duk-home" style="flex:33%;border-right: solid white 1px;line-height: 10px;">
+                    <img src="/gui/img/payload.png"/>
+                    <h3><span style="color:lightblue;font-weight: 900;">abilities</span></h3>
+                    <h1>{{ abilities|length }}</h1>
+                </div>
+                <div class="column duk-home" style="flex:33%;line-height: 10px;">
+                    <img src="/gui/img/hacker.png"/>
+                    <h3><span style="color:green;font-weight: 900;">adversaries</span></h3>
+                    <h1>{{ adversaries|length }}</h1>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
