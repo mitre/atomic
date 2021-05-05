@@ -10,7 +10,7 @@ from plugins.atomic.app.atomic_svc import AtomicService
 
 
 @for_all_public_methods(check_authorization)
-class AtomicAPI(BaseService):
+class AtomicGUI(BaseService):
 
     def __init__(self, services, name, description):
         self.services = services
