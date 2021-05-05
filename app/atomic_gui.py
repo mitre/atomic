@@ -1,11 +1,8 @@
-import json
 import logging
 
-from aiohttp import web
 from aiohttp_jinja2 import template
 
 from app.service.auth_svc import for_all_public_methods, check_authorization
-from plugins.atomic.app.atomic_svc import AtomicService
 
 
 @for_all_public_methods(check_authorization)
