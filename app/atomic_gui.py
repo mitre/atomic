@@ -4,21 +4,18 @@ import logging
 from aiohttp import web
 from aiohttp_jinja2 import template
 
-from app.utility.base_service import BaseService
 from app.service.auth_svc import for_all_public_methods, check_authorization
 from plugins.atomic.app.atomic_svc import AtomicService
 
 
 @for_all_public_methods(check_authorization)
-class AtomicGUI(BaseService):
+class AtomicGUI:
 
     def __init__(self, services, name, description):
-        self.services = services
-        self.auth_svc = self.services.get('auth_svc')
-        self.data_svc = self.services.get('data_svc')
+        self.auth_svc = services.get('auth_svc')
+        self.data_svc = services.get('data_svc')
         self.name = name
         self.description = description
-        self.atomic_svc = AtomicService()
 
         self.log = logging.getLogger('atomic_gui')
 
