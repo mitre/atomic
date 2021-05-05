@@ -14,7 +14,6 @@ data_dir = os.path.join('plugins', 'atomic', 'data')
 async def enable(services):
     atomic_gui = AtomicGUI(services, name, description)
     app = services.get('app_svc').application
-    app.router.add_static('/atomic', 'plugins/atomic/static/', append_version=True)
     app.router.add_route('GET', '/plugin/atomic/gui', atomic_gui.splash)
 
     # we only ingest data once, and save new abilities in the data/ folder of the plugin
