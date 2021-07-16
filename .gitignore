@@ -9,3 +9,7 @@
 .idea/*
 conf/secrets.yml
 atomic-red-team/*
+data/*
+!data/.gitkeep
+payloads/*
+!payloads/.gitkeep
