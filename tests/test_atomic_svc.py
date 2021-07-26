@@ -60,3 +60,60 @@ class TestAtomicSvc:
     def test_handle_multiline_command_cmd(self, multiline_command):
         target = 'command1 && command2 && command3'
         assert AtomicService._handle_multiline_commands(multiline_command, 'cmd') == target
+
+    def test_handle_multiline_command_cmd_comments(self):
+        commands = '\n'.join([
+            'command1',
+            'REM this is a comment',
+            ' rem this is another comment',
+            'command2',
+            ' :: another comment',
+            ':: another comment',
+            ' @ REM another comment',
+            'command3',
+            '@rem more comments'
+        ])
+        want = 'command1 && command2 && command3'
+        assert AtomicService._handle_multiline_commands(commands, 'cmd') == want
+
+    def test_handle_multiline_command_shell_comments(self):
+        commands = '\n'.join([
+            'command1',
+            '# comment',
+            ' # comment',
+            'command2',
+            ';# comment',
+            '; # comment',
+            'echo thisis#notacomment',
+            'echo thisis;#a comment',
+            'command3 # trailing comment',
+            'command4;#trailing comment',
+            'command5; #trailing comment',
+            'echo "this is # not a comment" # but this is',
+            'echo "\'" can you \'"\' handle "complex # quotes" # but still find the comment; #? ##',
+        ])
+        want = 'command1; command2; echo thisis#notacomment; echo thisis; command3; command4; command5; ' \
+            'echo "this is # not a comment"; echo "\'" can you \'"\' handle "complex # quotes"'
+        assert AtomicService._handle_multiline_commands(commands, 'sh') == want
+
+    def test_handle_multiline_command_powershell_comments(self):
+        commands = '\n'.join([
+            'command1',
+            '# comment',
+            ' # comment',
+            'command2',
+            ';# comment',
+            '; # comment',
+            'echo thisis#notacomment',
+            'echo thisis;#a comment',
+            'command3 # trailing comment',
+            'command4;#trailing comment',
+            'command5; #trailing comment',
+            'echo "this is # not a comment" # but this is',
+            'echo "\'" can you \'"\' han`"dle "complex # quotes" # but still find the comment; #? ##',
+            'echo `"this is not actually a quote # so this comment should be removed `"',
+        ])
+        want = 'command1; command2; echo thisis#notacomment; echo thisis; command3; command4; command5; ' \
+               'echo "this is # not a comment"; echo "\'" can you \'"\' han`"dle "complex # quotes"; ' \
+               'echo `"this is not actually a quote'
+        assert AtomicService._handle_multiline_commands(commands, 'psh') == want

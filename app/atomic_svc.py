@@ -174,11 +174,68 @@ class AtomicService(BaseService):
 
     @staticmethod
     def _handle_multiline_commands(cmd, executor):
-        li = cmd.strip().split("\n")
+        command_lines = cmd.strip().split("\n")
         if executor == "cmd":
-            return " && ".join(li)
+            return " && ".join(AtomicService._remove_dos_comment_lines(command_lines))
         else:
-            return "; ".join(li)
+            return "; ".join(AtomicService._remove_shell_comments(command_lines, executor))
+
+    @staticmethod
+    def _remove_dos_comment_lines(command_lines):
+        """Remove lines that start with REM or :: comments for Windows DOS cmd. Does not handle trailing comments."""
+        def _starts_with_comment(line):
+            return re.match(r'^\s*@?\s*rem\s+', line, re.IGNORECASE) or re.match(r'^\s*::\s+', line, re.IGNORECASE)
+
+        return [line for line in command_lines if not _starts_with_comment(line)]
+
+    @staticmethod
+    def _remove_shell_comments(command_lines, executor):
+        """Remove lines that start with a # comment. Also remove trailing comments."""
+        def _starts_with_comment(line):
+            return re.match(r'^\s*#', line)
+
+        def _remove_escaped_quotes(line):
+            regex = r'`("|\')' if executor == 'psh' else r'\\(\'|")'
+            return re.sub(regex, '', line)
+
+        def _index_within_completed_quotes_and_contents(line, index):
+            start_index = 0
+            while start_index < len(line) and start_index <= index:
+                to_process = line[start_index:]
+                quote_match = re.search(r'\'|"', to_process)
+                if not quote_match:
+                    return False
+                start_quote_index = quote_match.start()
+                first_quote_char = to_process[start_quote_index]
+                quote_matches = list(re.finditer(first_quote_char, to_process))
+                if len(quote_matches) > 1:
+                    closing_quote_index = quote_matches[1].start()
+                    if start_quote_index + start_index <= index <= closing_quote_index + start_index:
+                        return True
+                    else:
+                        start_index = closing_quote_index + start_index + 1
+                else:
+                    # Unbalanced quotes. Since line only goes up to the start of the comment,
+                    # the comment must be inside quotes.
+                    return True
+            return False
+
+        def _remove_trailing_comment(line):
+            trailing_comment_regex = r'(;|\s)\s*#'
+            for match in re.finditer(trailing_comment_regex, line):
+                # Check if the trailing comment is actually part of a closed quote group
+                removed_escaped_quotes = _remove_escaped_quotes(line[0:match.end()])
+                if not _index_within_completed_quotes_and_contents(removed_escaped_quotes, match.start()):
+                    return line[0:match.start()]
+            return line
+
+        ret_lines = []
+        for command_line in command_lines:
+            if not _starts_with_comment(command_line):
+                processed = _remove_trailing_comment(command_line)
+                if processed:
+                    ret_lines.append(processed)
+        return ret_lines
 
     async def _prepare_cmd(self, test, platform, executor, cmd):
         """
