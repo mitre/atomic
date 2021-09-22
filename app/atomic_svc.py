@@ -294,7 +294,7 @@ class AtomicService(BaseService):
                 data['platforms'][platform][executor] = dict(command=command, payloads=payloads, cleanup=cleanup)
                 if executor == 'psh':
                     data['platforms'][platform][executor]['parsers'] = {'plugins.atomic.app.parsers.powershell':
-                                                                           [{'source': 'validate_me'}]}
+                                                                        [{'source': 'validate_me'}]}
 
         if data['platforms']:  # this might be empty, if so there's nothing useful to save
             d = os.path.join(self.data_dir, 'abilities', tactic)
