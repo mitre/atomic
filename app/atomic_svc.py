@@ -293,7 +293,7 @@ class AtomicService(BaseService):
                 data['platforms'][platform] = dict()
                 data['platforms'][platform][executor] = dict(command=command, payloads=payloads, cleanup=cleanup)
                 if executor == 'psh':
-                    data['platforms'][platform][executor]['parsers'] = {'plugins.atomic.app.parsers.powershell':
+                    data['platforms'][platform][executor]['parsers'] = {'plugins.atomic.app.parsers.atomic_powershell':
                                                                         [{'source': 'validate_me'}]}
 
         if data['platforms']:  # this might be empty, if so there's nothing useful to save
