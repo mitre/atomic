@@ -1,22 +1,44 @@
-<div id="atomic-section" class="section-profile">
-    <div class="row">
-        <div class="topleft duk-icon"><img onclick="removeSection('atomic-section')" src="/gui/img/x.png"></div>
-
-        <!-- sidebar -->
-        <div class="column section-profile">
-            <h1>{{name}}</h1>
-            <p>{{description}}</p>
-        </div>
-
-        <!-- main content -->
-        <div class="column" style="flex:67%;padding:15px;text-align: left">
-            <div class="row" style="border: none;margin: -45px -50px -50px;background-image:none">
-                <div class="column duk-home" style="line-height: 10px;">
-                    <img src="/gui/img/payload.png"/>
-                    <h3><span style="color:lightblue;font-weight: 900;">abilities</span></h3>
-                    <h1>{{ abilities|length }}</h1>
-                </div>
-            </div>
-        </div>
+<div x-data="alpineAtomic" x-init="initPage()">
+    <div>
+        <h2>Atomic</h2>
+        <p>
+            The collection of abilities in the Red Canary Atomic test project.
+        </p>
+    </div>
+    <hr>
+    <div class="is-flex is-align-items-center is-justify-content-center is-flex-direction-column fill">
+        <h1 class="has-text-info is-size-1 mb-0" x-text="numAbilities || '---'"></h1>
+        <p>abilties</p>
+        <p>View or edit these abilities on the abilities page.</p>
+        <a class="button is-primary is-small" x-on:click="addTab('abilities', '/campaign/abilities', 'plugin=atomic')">
+            <span>Abilities Page</span>
+            <span class="icon"><i class="fas fa-angle-right"></i></span>
+        </a>
     </div>
 </div>
+
+<script>
+function alpineAtomic() {
+    return {
+        numAbilities: 0,
+
+        initPage() {
+            apiV2('GET', 'api/v2/abilities').then((abilities) => {
+                this.numAbilities = abilities.filter((ability) => ability.plugin === 'atomic').length;
+            }).catch((error) => {
+                toast('Error loading page', false);
+                console.error(error);
+            })
+        }
+    }
+}
+
+//- atomic.js
+</script>
+
+<style scoped>
+.fill {
+    height: 50%;
+    width: 100%;
+}  
+</style>
