@@ -255,8 +255,28 @@ class AtomicService(BaseService):
         Prepare the command and cleanup, and return them with the needed payloads.
         """
         payloads = []
+        command = ''
+        if 'dependencies' in test :
+            for dependence in test['dependencies']:
+                if 'get_prereq_command' in dependence:
+                    prereq_command = dependence.get('prereq_command', '')
+                    command += prereq_command
+                    if len(prereq_command) > 0:
+                        if executor == 'sh':
+                            command += (os.linesep + 'if [ $? -ne 0 ]; then ' )
+                        else:
+                            command += (os.linesep + 'if( -Not $? ) { ' )
+                            
+                    command += dependence['get_prereq_command']
+                    
+                    if len(prereq_command) > 0:
+                        if executor == 'sh':
+                            command += (os.linesep + 'fi' + os.linesep)
+                        else:
+                            command += (' }')
+        command += test['executor']['command']
 
-        command, payloads_command = await self._prepare_cmd(test, platform, executor, test['executor']['command'])
+        command, payloads_command = await self._prepare_cmd(test, platform, executor, command)
         cleanup, payloads_cleanup = await self._prepare_cmd(test, platform, executor, test['executor'].get('cleanup_command', ''))
         payloads.extend(payloads_command)
         payloads.extend(payloads_cleanup)
