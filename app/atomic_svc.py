@@ -175,16 +175,26 @@ class AtomicService(BaseService):
     @staticmethod
     def _handle_multiline_commands(cmd, executor):
         command_lines = cmd.strip().split("\n")
-        if executor == "cmd":
-            return " && ".join(AtomicService._remove_dos_comment_lines(command_lines))
+        if executor == 'cmd':
+            return ' && '.join(AtomicService._remove_dos_comment_lines(command_lines))
         else:
             return AtomicService._concatenate_shell_commands(AtomicService._remove_shell_comments(command_lines,
                                                                                                   executor))
 
     @staticmethod
     def _concatenate_shell_commands(command_lines):
-        """Concatenate multiple shell command lines, making sure we don't add more than one ; character at the end."""
-        return '; '.join([re.sub(r';\s*$', '', cmd) for cmd in command_lines])
+        """Concatenate multiple shell command lines. The ; character won't be added at the end of each command if the
+        command line ends in "then" or "do" or already ends with a ; character."""
+        to_concat = []
+        num_lines = len(command_lines)
+        for index, cmd in enumerate(command_lines):
+            to_concat.append(cmd)
+            if re.search(r'do\s*$', cmd) or re.search(r'then\s*$', cmd) or re.search(r';\s*$', cmd):
+                if not re.search(r'\s+$', cmd):
+                    to_concat.append(' ')
+            elif index < num_lines - 1:
+                to_concat.append('; ')
+        return ''.join(to_concat)
 
     @staticmethod
     def _remove_dos_comment_lines(command_lines):

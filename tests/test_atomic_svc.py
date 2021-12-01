@@ -130,3 +130,28 @@ class TestAtomicSvc:
         ])
         want = 'command1; command2; command3 ; command4;; command5'
         assert AtomicService._handle_multiline_commands(commands, 'sh') == want
+
+    def test_handle_multiline_command_shell_loop(self):
+        commands = '\n'.join([
+            'for port in {1..65535};',
+            '# comment',
+            ' # comment',
+            'do ',
+            'innerloopcommand;',
+            'innerloopcommand2',
+            'done'
+        ])
+        want = 'for port in {1..65535}; do innerloopcommand; innerloopcommand2; done'
+        assert AtomicService._handle_multiline_commands(commands, 'sh') == want
+
+    def test_handle_multiline_command_shell_ifthen(self):
+        commands = '\n'.join([
+            'if condition; then',
+            '# comment',
+            ' # comment',
+            'innercommand;',
+            'innercommand2;',
+            'fi'
+        ])
+        want = 'if condition; then innercommand; innercommand2; fi'
+        assert AtomicService._handle_multiline_commands(commands, 'sh') == want
