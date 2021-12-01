@@ -117,3 +117,16 @@ class TestAtomicSvc:
                'echo "this is # not a comment"; echo "\'" can you \'"\' han`"dle "complex # quotes"; ' \
                'echo `"this is not actually a quote'
         assert AtomicService._handle_multiline_commands(commands, 'psh') == want
+
+    def test_handle_multiline_command_shell_semicolon(self):
+        commands = '\n'.join([
+            'command1',
+            '# comment',
+            ' # comment',
+            'command2; ',
+            'command3 ;',
+            'command4;;',
+            'command5'
+        ])
+        want = 'command1; command2; command3 ; command4;; command5'
+        assert AtomicService._handle_multiline_commands(commands, 'sh') == want

@@ -178,7 +178,13 @@ class AtomicService(BaseService):
         if executor == "cmd":
             return " && ".join(AtomicService._remove_dos_comment_lines(command_lines))
         else:
-            return "; ".join(AtomicService._remove_shell_comments(command_lines, executor))
+            return AtomicService._concatenate_shell_commands(AtomicService._remove_shell_comments(command_lines,
+                                                                                                  executor))
+
+    @staticmethod
+    def _concatenate_shell_commands(command_lines):
+        """Concatenate multiple shell command lines, making sure we don't add more than one ; character at the end."""
+        return '; '.join([re.sub(r';\s*$', '', cmd) for cmd in command_lines])
 
     @staticmethod
     def _remove_dos_comment_lines(command_lines):
