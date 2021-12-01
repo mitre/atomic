@@ -250,6 +250,13 @@ class AtomicService(BaseService):
         cmd = self._handle_multiline_commands(cmd, executor)
         return cmd, payloads
 
+    def _concat_command(self, command, addition):
+        if len(addition) > 0:
+            if len(command) > 0:
+                command += os.linesep
+            command += addition
+        return command
+
     async def _prepare_executor(self, test, platform, executor):
         """
         Prepare the command and cleanup, and return them with the needed payloads.
@@ -258,23 +265,10 @@ class AtomicService(BaseService):
         command = ''
         if 'dependencies' in test :
             for dependence in test['dependencies']:
-                if 'get_prereq_command' in dependence:
-                    prereq_command = dependence.get('prereq_command', '')
-                    command += prereq_command
-                    if len(prereq_command) > 0:
-                        if executor == 'sh':
-                            command += (os.linesep + 'if [ $? -ne 0 ]; then ' )
-                        else:
-                            command += (os.linesep + 'if( -Not $? ) { ' )
-                            
-                    command += dependence['get_prereq_command']
-                    
-                    if len(prereq_command) > 0:
-                        if executor == 'sh':
-                            command += (os.linesep + 'fi' + os.linesep)
-                        else:
-                            command += (' }')
-        command += test['executor']['command']
+                command = self._concat_command(command, dependence.get('get_prereq_command',''))
+                command = self._concat_command(command, dependence.get('prereq_command', '') )                  
+
+        command = self._concat_command(command, test['executor']['command'])
 
         command, payloads_command = await self._prepare_cmd(test, platform, executor, command)
         cleanup, payloads_cleanup = await self._prepare_cmd(test, platform, executor, test['executor'].get('cleanup_command', ''))
