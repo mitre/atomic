@@ -33,6 +33,7 @@ class AtomicService(BaseService):
         self.repo_dir = os.path.join(self.atomic_dir, 'data/atomic-red-team')
         self.data_dir = os.path.join(self.atomic_dir, 'data')
         self.payloads_dir = os.path.join(self.atomic_dir, 'payloads')
+        self.processing_debug = False
 
     async def clone_atomic_red_team_repo(self, repo_url=None):
         """
@@ -271,9 +272,24 @@ class AtomicService(BaseService):
         Prepare the command and cleanup, and return them with the needed payloads.
         """
         payloads = []
+        dep_construct = ""
+        if 'dependencies' in test:
+            for dependence in test['dependencies']:
+                try:
+                    dep_construct = await self._prereq_formater(dependence.get('prereq_command', ''),
+                                                                dependence.get('get_prereq_command', ''),
+                                                                EXECUTORS[test['dependency_executor_name']],
+                                                                executor,
+                                                                dep_construct)
+                except (IndexError, KeyError):  # either a dependence executor was missing, or the check is not scripted
+                    self.log.debug(f'Unable to automate pre-req conditions for "{test["name"]}". Defaulting to just '
+                                   f'the base command for the ability - this may cause the produced ability to '
+                                   f'behave unexpectedly.')
 
-        command, payloads_command = await self._prepare_cmd(test, platform, executor, test['executor']['command'])
-        cleanup, payloads_cleanup = await self._prepare_cmd(test, platform, executor, test['executor'].get('cleanup_command', ''))
+        precmd = f"{dep_construct} \n {test['executor']['command']}" if dep_construct else test['executor']['command']
+        command, payloads_command = await self._prepare_cmd(test, platform, executor, precmd)
+        cleanup, payloads_cleanup = await self._prepare_cmd(test, platform, executor,
+                                                            test['executor'].get('cleanup_command', ''))
         payloads.extend(payloads_command)
         payloads.extend(payloads_cleanup)
 
@@ -322,3 +338,61 @@ class AtomicService(BaseService):
             return True
 
         return False
+
+    async def _prereq_formater(self, prereq_test, prereq, prereq_type, exec_type, ability_command):
+        """
+        Format prereqs as a header test block for an ability
+        :param prereq_test: Test to see if the ability is required
+        :param prereq: Command to install prereq if required
+        :param prereq_type: Which executor this prereq should target (psh, sh, cmd)
+        :param exec_type: Which executor this ability should target (psh, sh, cmd)
+        :param ability_command: Existing commands for this ability
+        :return: Full formed, staged command
+        """
+        output = ""
+        prereq = prereq.rstrip()
+        if 'exit' not in prereq_test.lower() or 'echo' in prereq:
+            if self.processing_debug:
+                self.log.debug(f'Action ({prereq}) cannot be automated automatically.')
+            raise IndexError
+        if prereq_type == 'sh':
+            segments = prereq_test.split(';')
+            if 'exit 1' in segments[1]:
+                # check is "falsy"
+                output += f"{segments[0]}; then {prereq}; fi;"
+            else:
+                # check is "truthy"
+                output += f"{segments[0]}; then : ; else {prereq}; fi;"
+        elif prereq_type == 'psh':
+            segments = prereq_test.split(')')
+            test_outcomes = segments[1].split('}')
+            if 'exit 1' in test_outcomes[0]:
+                # check is "falsy"
+                output += f"{segments[0]}) {{{prereq}}}"
+            else:
+                # check is "truthy"
+                output += f"{segments[0]}) {{Set-Variable -Name 'a' -Value 'pass'}} else {{{prereq}}}"
+        elif prereq_type == 'cmd':
+            segments = prereq_test.split('(')
+            test_outcomes = segments[1].split('ELSE')
+            if 'exit 1' in test_outcomes[0]:
+                # check is "falsy"
+                output += f"{segments[0]} ({prereq})"
+            else:
+                # check is "truthy"
+                output += f"{segments[0]} ( call ) ELSE ( {prereq} )"
+        else:
+            return ability_command
+        if prereq_type == exec_type:
+            output += '\n' + ability_command
+        else:
+            if prereq_type == "cmd" and exec_type == "psh":
+                output += '\n' + ability_command
+            elif prereq_type == "psh" and exec_type == "cmd":
+                output = f'powershell -command "{output} \n {ability_command}"'
+            else:
+                self.log.warning(f'Unable to deduce a way to link a {prereq_type} prereq and a {exec_type} ability. '
+                                 f'Defaulting to just the ability - this may cause the produced ability to behave '
+                                 f'unexpectedly.')
+                output = ability_command
+        return output
