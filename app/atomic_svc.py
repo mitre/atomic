@@ -19,6 +19,10 @@ RE_VARIABLE = re.compile('(#{(.*?)})', re.DOTALL)
 PREFIX_HASH_LEN = 6
 
 
+class ExtractionError(Exception):
+    pass
+
+
 class AtomicService(BaseService):
 
     def __init__(self):
@@ -276,16 +280,17 @@ class AtomicService(BaseService):
         if 'dependencies' in test:
             for dependence in test['dependencies']:
                 try:
+                    test_exc = test.get('dependency_executor_name') \
+                        if test.get('dependency_executor_name', False) else executor
                     dep_construct = await self._prereq_formater(dependence.get('prereq_command', ''),
                                                                 dependence.get('get_prereq_command', ''),
-                                                                EXECUTORS[test['dependency_executor_name']],
+                                                                test_exc,
                                                                 executor,
                                                                 dep_construct)
-                except (IndexError, KeyError):  # either a dependence executor was missing, or the check is not scripted
+                except ExtractionError:
                     self.log.debug(f'Unable to automate pre-req conditions for "{test["name"]}". Defaulting to just '
                                    f'the base command for the ability - this may cause the produced ability to '
                                    f'behave unexpectedly.')
-
         precmd = f"{dep_construct} \n {test['executor']['command']}" if dep_construct else test['executor']['command']
         command, payloads_command = await self._prepare_cmd(test, platform, executor, precmd)
         cleanup, payloads_cleanup = await self._prepare_cmd(test, platform, executor,
@@ -351,10 +356,15 @@ class AtomicService(BaseService):
         """
         output = ""
         prereq = prereq.rstrip()
-        if 'exit' not in prereq_test.lower() or 'echo' in prereq:
+        if 'exit' not in prereq_test.lower() or prereq.startswith('echo "') or \
+                (prereq.startswith('echo ') and ('Run' in prereq or 'Sorry,' in prereq)):
             if self.processing_debug:
                 self.log.debug(f'Action ({prereq}) cannot be automated automatically.')
-            raise IndexError
+                if prereq.startswith('echo'):
+                    self.log.debug(f'Try to satisfy: {prereq.split("echo")[1].split("; exit")[0]}')
+                elif prereq.startswith('Write-Host'):
+                    self.log.debug(f'Try to satisfy: {prereq.split("Write-Host ")[1]}')
+            raise ExtractionError
         if prereq_type == 'sh':
             segments = prereq_test.split(';')
             if 'exit 1' in segments[1]:
@@ -364,14 +374,19 @@ class AtomicService(BaseService):
                 # check is "truthy"
                 output += f"{segments[0]}; then : ; else {prereq}; fi;"
         elif prereq_type == 'psh':
-            segments = prereq_test.split(')')
-            test_outcomes = segments[1].split('}')
-            if 'exit 1' in test_outcomes[0]:
-                # check is "falsy"
-                output += f"{segments[0]}) {{{prereq}}}"
+            if prereq_test.startswith('Try'):
+                temp = f"{prereq_test.replace('exit 1', prereq)}"
+                tstring = "Set-Variable -Name 'a' -Value 'pass'"
+                output += f"{temp.replace('exit 0', tstring)}"
             else:
-                # check is "truthy"
-                output += f"{segments[0]}) {{Set-Variable -Name 'a' -Value 'pass'}} else {{{prereq}}}"
+                segments = prereq_test.split(')')
+                test_outcomes = segments[1].split('}')
+                if 'exit 1' in test_outcomes[0]:
+                    # check is "falsy"
+                    output += f"{segments[0]}) {{{prereq}}}"
+                else:
+                    # check is "truthy"
+                    output += f"{segments[0]}) {{Set-Variable -Name 'a' -Value 'pass'}} else {{{prereq}}}"
         elif prereq_type == 'cmd':
             segments = prereq_test.split('(')
             test_outcomes = segments[1].split('ELSE')
