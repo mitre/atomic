@@ -280,8 +280,7 @@ class AtomicService(BaseService):
         if 'dependencies' in test:
             for dependence in test['dependencies']:
                 try:
-                    test_exc = test.get('dependency_executor_name') \
-                        if test.get('dependency_executor_name', False) else executor
+                    test_exc = test.get('dependency_executor_name', executor)
                     dep_construct = await self._prereq_formater(dependence.get('prereq_command', ''),
                                                                 dependence.get('get_prereq_command', ''),
                                                                 test_exc,
