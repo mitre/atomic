@@ -375,8 +375,7 @@ class AtomicService(BaseService):
         elif prereq_type == 'psh':
             if prereq_test.startswith('Try'):
                 temp = f"{prereq_test.replace('exit 1', prereq)}"
-                tstring = "Set-Variable -Name 'a' -Value 'pass'"
-                output += f"{temp.replace('exit 0', tstring)}"
+                output += f"{temp.replace('exit 0', ' ; ')}"
             else:
                 segments = prereq_test.split(')')
                 test_outcomes = segments[1].split('}')
@@ -385,7 +384,7 @@ class AtomicService(BaseService):
                     output += f"{segments[0]}) {{{prereq}}}"
                 else:
                     # check is "truthy"
-                    output += f"{segments[0]}) {{Set-Variable -Name 'a' -Value 'pass'}} else {{{prereq}}}"
+                    output += f"{segments[0]}) {{ ; }} else {{{prereq}}}"
         elif prereq_type == 'cmd':
             segments = prereq_test.split('(')
             test_outcomes = segments[1].split('ELSE')
