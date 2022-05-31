@@ -318,7 +318,6 @@ class AtomicService(BaseService):
             ),
             platforms=dict()
         )
-
         for p in test['supported_platforms']:
             if test['executor']['name'] != 'manual':
                 # manual tests are expected to be run manually by a human, no automation is provided
