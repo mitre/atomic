@@ -304,6 +304,7 @@ class AtomicService(BaseService):
         Return True if an ability was saved.
         """
         ability_id = hashlib.md5(json.dumps(test).encode()).hexdigest()
+
         tactics_li = self.technique_to_tactics.get(entries['attack_technique'], ['redcanary-unknown'])
         tactic = 'multiple' if len(tactics_li) > 1 else tactics_li[0]
 
