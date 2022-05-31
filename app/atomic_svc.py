@@ -61,7 +61,7 @@ class AtomicService(BaseService):
         """
         if not self.technique_to_tactics:
             await self._populate_dict_techniques_tactics()
-
+        self.log.debug('populated dict technqiue tactics')
         if not path_yaml:
             path_yaml = os.path.join(self.repo_dir, 'atomics', '**', 'T*.yaml')
 
@@ -69,10 +69,13 @@ class AtomicService(BaseService):
         at_ingested = 0
         errors = 0
         for filename in glob.iglob(path_yaml):
+            self.log.debug(f'parsing {filename}')
             for entries in BaseWorld.strip_yml(filename):
+                self.log.debug(f'entries {entries.keys()}')
                 for test in entries.get('atomic_tests'):
                     at_total += 1
                     try:
+                        self.log.debug(f'saving ability {test}')
                         if await self._save_ability(entries, test):
                             at_ingested += 1
                     except Exception as e:
@@ -301,10 +304,10 @@ class AtomicService(BaseService):
 
     async def _save_ability(self, entries, test):
         """
-        Return True iif an ability was saved.
+        Return True if an ability was saved.
         """
         ability_id = hashlib.md5(json.dumps(test).encode()).hexdigest()
-
+        self.log.debug(f'adding ability with id {ability_id}')
         tactics_li = self.technique_to_tactics.get(entries['attack_technique'], ['redcanary-unknown'])
         tactic = 'multiple' if len(tactics_li) > 1 else tactics_li[0]
 
@@ -319,6 +322,7 @@ class AtomicService(BaseService):
             ),
             platforms=dict()
         )
+        self.log.debug(f'adding data for {test.get("supported_platforms")}')
         for p in test['supported_platforms']:
             if test['executor']['name'] != 'manual':
                 # manual tests are expected to be run manually by a human, no automation is provided

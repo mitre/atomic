@@ -17,7 +17,7 @@ async def enable(services):
     app.router.add_route('GET', '/plugin/atomic/gui', atomic_gui.splash)
 
     # we only ingest data once, and save new abilities in the data/ folder of the plugin
-    if "abilities" not in os.listdir(data_dir):
-        atomic_svc = AtomicService()
-        await atomic_svc.clone_atomic_red_team_repo()
-        await atomic_svc.populate_data_directory()
+    #if "abilities" not in os.listdir(data_dir):
+    atomic_svc = AtomicService()
+    await atomic_svc.clone_atomic_red_team_repo()
+    await atomic_svc.populate_data_directory()
