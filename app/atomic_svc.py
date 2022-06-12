@@ -287,9 +287,7 @@ class AtomicService(BaseService):
                                                                 executor,
                                                                 dep_construct)
                 except ExtractionError:
-                    self.log.debug(f'Unable to automate pre-req conditions for "{test["name"]}". Defaulting to just '
-                                   f'the base command for the ability - this may cause the produced ability to '
-                                   f'behave unexpectedly.')
+                    self.log.debug(f'Skipping pre-req for "{test["name"]}"')
         precmd = f"{dep_construct} \n {test['executor']['command']}" if dep_construct else test['executor']['command']
         command, payloads_command = await self._prepare_cmd(test, platform, executor, precmd)
         cleanup, payloads_cleanup = await self._prepare_cmd(test, platform, executor,
