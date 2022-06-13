@@ -179,8 +179,30 @@ class TestAtomicSvc:
 
     def test_use_default_inputs(self, atomic_test):
         platform = 'windows'
-        string_to_analyse = '#{recon_commands} -a'
-        got = AtomicService._use_default_inputs(atomic_test,
-                                                platform, string_to_analyse)
+        string_to_analyze = '#{recon_commands} -a'
+        got = AtomicService()._use_default_inputs(test=atomic_test,
+                                                platform=platform,
+                                                string_to_analyse=string_to_analyze)
+        assert got[0] == '64c4ae_qakbot.bat -a'
+        assert got[1] == ['64c4ae_qakbot.bat']
+
+    def test_use_default_inputs_empty_string(self, atomic_test):
+        platform = 'windows'
+        string_to_analyze = ''
+        got = AtomicService()._use_default_inputs(test=atomic_test,
+                                                platform=platform,
+                                                string_to_analyse=string_to_analyze)
         assert got[0] == ''
-        assert got[1] == ['qakbot.bat']
+        assert got[1] == []
+
+    def test_use_default_inputs_nil_valued(self, atomic_test):
+        platform = 'windows'
+        string_to_analyze = '#{recon_commands}'
+        test = atomic_test
+        test['input_arguments']['recon_commands']['default'] = None
+        got = AtomicService()._use_default_inputs(test=test,
+                                                platform=platform,
+                                                string_to_analyse=string_to_analyze)
+        assert got[0] == 'None'
+        assert got[1] == []
+
