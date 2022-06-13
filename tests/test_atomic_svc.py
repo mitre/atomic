@@ -200,9 +200,9 @@ class TestAtomicSvc:
         platform = 'windows'
         string_to_analyze = '#{recon_commands}'
         test = atomic_test
-        test['input_arguments']['recon_commands']['default'] = None
+        test['input_arguments']['recon_commands']['default'] = ''
         got = AtomicService()._use_default_inputs(test=test,
                                                 platform=platform,
                                                 string_to_analyse=string_to_analyze)
-        assert got[0] == 'None'
+        assert got[0] == ''
         assert got[1] == []
