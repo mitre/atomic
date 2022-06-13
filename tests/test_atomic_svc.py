@@ -30,6 +30,7 @@ def multiline_command():
         'command3',
     ])
 
+
 @pytest.fixture
 def atomic_test():
     return {
@@ -205,4 +206,3 @@ class TestAtomicSvc:
                                                 string_to_analyse=string_to_analyze)
         assert got[0] == 'None'
         assert got[1] == []
-
