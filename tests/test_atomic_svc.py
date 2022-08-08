@@ -184,8 +184,8 @@ class TestAtomicSvc:
         got = atomic_svc._use_default_inputs(test=atomic_test,
                                                 platform=platform,
                                                 string_to_analyse=string_to_analyze)
-        assert got[0] == '64c4ae_qakbot.bat -a'
-        assert got[1] == ['64c4ae_qakbot.bat']
+        assert got[0] == 'PathToAtomicsFolder\\T1016\\src\\qakbot.bat -a'
+        assert got[1] == ['PathToAtomicsFolder\\T1016\\src\\qakbot.bat']
 
     def test_use_default_inputs_empty_string(self, atomic_svc, atomic_test):
         platform = 'windows'
