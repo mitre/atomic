@@ -170,7 +170,7 @@ class AtomicService(BaseService):
             full_var_str, varname = RE_VARIABLE.search(string_to_analyse).groups()
             default_var = str(defaults.get(varname, dict()).get('default'))
 
-            if default_var:
+            if default_var is not None:
                 default_var, new_payloads = self._catch_path_to_atomics_folder(default_var, platform)
                 payloads.extend(new_payloads)
                 string_to_analyse = string_to_analyse.replace(full_var_str, default_var)
@@ -299,7 +299,7 @@ class AtomicService(BaseService):
 
     async def _save_ability(self, entries, test):
         """
-        Return True iif an ability was saved.
+        Return True if an ability was saved.
         """
         ability_id = hashlib.md5(json.dumps(test).encode()).hexdigest()
 

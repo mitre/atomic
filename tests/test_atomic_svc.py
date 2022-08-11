@@ -31,6 +31,28 @@ def multiline_command():
     ])
 
 
+@pytest.fixture
+def atomic_test():
+    return {
+        'name': 'Qakbot Recon',
+        'auto_generated_guid': '121de5c6-5818-4868-b8a7-8fd07c455c1b',
+        'description': 'A list of commands known to be performed by Qakbot',
+        'supported_platforms': ['windows'],
+        'input_arguments': {
+            'recon_commands': {
+                'description': 'File that houses commands to be executed',
+                'type': 'Path',
+                'default': 'PathToAtomicsFolder\\T1016\\src\\qakbot.bat'
+                }
+            },
+        'executor': {
+            'command': '#{recon_commands}\n',
+            'name':
+            'command_prompt'
+            }
+        }
+
+
 class TestAtomicSvc:
     def test_svc_config(self, atomic_svc):
         assert atomic_svc.repo_dir == 'plugins/atomic/data/atomic-red-team'
@@ -155,3 +177,32 @@ class TestAtomicSvc:
         ])
         want = 'if condition; then innercommand; innercommand2; fi'
         assert AtomicService._handle_multiline_commands(commands, 'sh') == want
+
+    def test_use_default_inputs(self, atomic_svc, atomic_test):
+        platform = 'windows'
+        string_to_analyze = '#{recon_commands} -a'
+        got = atomic_svc._use_default_inputs(test=atomic_test,
+                                                platform=platform,
+                                                string_to_analyse=string_to_analyze)
+        assert got[0] == 'PathToAtomicsFolder\\T1016\\src\\qakbot.bat -a'
+        assert got[1] == []
+
+    def test_use_default_inputs_empty_string(self, atomic_svc, atomic_test):
+        platform = 'windows'
+        string_to_analyze = ''
+        got = atomic_svc._use_default_inputs(test=atomic_test,
+                                                platform=platform,
+                                                string_to_analyse=string_to_analyze)
+        assert got[0] == ''
+        assert got[1] == []
+
+    def test_use_default_inputs_nil_valued(self, atomic_svc, atomic_test):
+        platform = 'windows'
+        string_to_analyze = '#{recon_commands}'
+        test = atomic_test
+        test['input_arguments']['recon_commands']['default'] = ''
+        got = atomic_svc._use_default_inputs(test=test,
+                                                platform=platform,
+                                                string_to_analyse=string_to_analyze)
+        assert got[0] == ''
+        assert got[1] == []
