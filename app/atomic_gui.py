@@ -14,7 +14,3 @@ class AtomicGUI(BaseWorld):
         self.data_svc = services.get('data_svc')
 
         self.log = logging.getLogger('atomic_gui')
-
-    @template('atomic.html')
-    async def splash(self, request):
-        return dict()
