@@ -1,6 +1,6 @@
-# CALDERA plugin: Atomic
+# MITRE Caldera plugin: Atomic
 
-A plugin supplying CALDERA with TTPs from the Atomic Red Team project.
+A plugin supplying Caldera with TTPs from the Atomic Red Team project.
 
 ## Details
 
