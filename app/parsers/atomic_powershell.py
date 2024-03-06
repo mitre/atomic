@@ -3,7 +3,7 @@ from app.utility.base_parser import BaseParser, PARSER_SIGNALS_FAILURE
 
 
 class Parser(BaseParser):
-    checked_flags = list('FullyQualifiedErrorId')
+    checked_flags = ['FullyQualifiedErrorId']
 
     def parse(self, blob):
         for ex_line in self.line(blob):
