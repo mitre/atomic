@@ -181,10 +181,13 @@ class TestAtomicSvc:
     def test_use_default_inputs(self, atomic_svc, atomic_test):
         platform = 'windows'
         string_to_analyze = '#{recon_commands} -a'
-        got = atomic_svc._use_default_inputs(test=atomic_test,
+        test = atomic_test
+        test['input_arguments']['recon_commands']['default'] = \
+            'PathToAtomicsFolder\\T1016\\src\\nonexistent-qakbot.bat'
+        got = atomic_svc._use_default_inputs(test=test,
                                                 platform=platform,
                                                 string_to_analyse=string_to_analyze)
-        assert got[0] == 'PathToAtomicsFolder\\T1016\\src\\qakbot.bat -a'
+        assert got[0] == 'PathToAtomicsFolder\\T1016\\src\\nonexistent-qakbot.bat -a'
         assert got[1] == []
 
     def test_use_default_inputs_empty_string(self, atomic_svc, atomic_test):
