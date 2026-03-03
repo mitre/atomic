@@ -336,7 +336,7 @@ class AtomicService(BaseService):
                 os.makedirs(d)
             file_path = os.path.join(d, '%s.yml' % ability_id)
             with open(file_path, 'w') as f:
-                f.write(yaml.dump([data]))
+                f.write(yaml.dump([data], explicit_start=True, sort_keys=False))
             return True
 
         return False
