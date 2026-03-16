@@ -178,6 +178,17 @@ class TestAtomicSvc:
         want = 'if condition; then innercommand; innercommand2; fi'
         assert AtomicService._handle_multiline_commands(commands, 'sh') == want
 
+    def test_handle_multiline_command_no_extra_semicolon_after_fi(self):
+        """Regression test for issue #3097: whitespace-only lines between prereq block
+        (ending with 'fi;') and the ability command must not produce a stray '; ' separator,
+        which resulted in commands like 'fi;  ;  ip neighbour show'."""
+        # Simulate the precmd built by _prepare_executor:
+        # dep_construct ends with 'fi;', then ' \n ' separates it from the ability command.
+        commands = 'if [ -x "$(command -v ip)" ]; then : ; else apt-get install iproute2 -y; fi;\n \n ip neighbour show'
+        result = AtomicService._handle_multiline_commands(commands, 'sh')
+        assert '; ;' not in result, f"Unexpected stray semicolon in: {result!r}"
+        assert 'ip neighbour show' in result
+
     def test_use_default_inputs(self, atomic_svc, atomic_test):
         platform = 'windows'
         string_to_analyze = '#{recon_commands} -a'
