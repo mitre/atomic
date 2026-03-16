@@ -183,10 +183,11 @@ class TestAtomicSvc:
         (ending with 'fi;') and the ability command must not produce a stray '; ' separator,
         which resulted in commands like 'fi;  ;  ip neighbour show'."""
         # Simulate the precmd built by _prepare_executor:
-        # dep_construct ends with 'fi;', then ' \n ' separates it from the ability command.
-        commands = 'if [ -x "$(command -v ip)" ]; then : ; else apt-get install iproute2 -y; fi;\n \n ip neighbour show'
+        # dep_construct ends with 'fi;', then '  \n  ' (two spaces) separates it from the
+        # ability command — matching the double-space pattern of the actual bug report.
+        commands = 'if [ -x "$(command -v ip)" ]; then : ; else apt-get install iproute2 -y; fi;\n  \n  ip neighbour show'
         result = AtomicService._handle_multiline_commands(commands, 'sh')
-        assert '; ;' not in result, f"Unexpected stray semicolon in: {result!r}"
+        assert ';  ;' not in result, f"Unexpected stray semicolon (double-space) in: {result!r}"
         assert 'ip neighbour show' in result
 
     def test_use_default_inputs(self, atomic_svc, atomic_test):
