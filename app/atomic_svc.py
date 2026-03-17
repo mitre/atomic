@@ -121,7 +121,7 @@ class AtomicService(BaseService):
         payload_name = os.path.basename(attachment_path)
         # to avoid collisions between payloads with the same name
         with open(attachment_path, 'rb') as f:
-            h = hashlib.md5(f.read()).hexdigest()
+            h = hashlib.md5(f.read(), usedforsecurity=False).hexdigest()
         payload_name = h[:PREFIX_HASH_LEN] + '_' + payload_name
         shutil.copyfile(attachment_path, os.path.join(self.payloads_dir, payload_name), follow_symlinks=False)
         return payload_name
@@ -301,7 +301,7 @@ class AtomicService(BaseService):
         """
         Return True if an ability was saved.
         """
-        ability_id = hashlib.md5(json.dumps(test).encode()).hexdigest()
+        ability_id = hashlib.md5(json.dumps(test).encode(), usedforsecurity=False).hexdigest()
 
         tactics_li = self.technique_to_tactics.get(entries['attack_technique'], ['redcanary-unknown'])
         tactic = 'multiple' if len(tactics_li) > 1 else tactics_li[0]
