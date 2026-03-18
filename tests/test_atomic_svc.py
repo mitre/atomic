@@ -114,7 +114,7 @@ class TestHandleAttachment:
         target_hash = hashlib.md5(DUMMY_PAYLOAD_CONTENT.encode()).hexdigest()
         target_name = target_hash[:PREFIX_HASH_LENGTH] + '_dummyatomicpayload'
         target_path = os.path.join(atomic_svc.payloads_dir, target_name)
-        assert atomic_svc._handle_attachment(DUMMY_PAYLOAD_PATH) == target_name
+        assert atomic_svc._handle_attachment(generate_dummy_payload) == target_name
         assert os.path.isfile(target_path)
         with open(target_path, 'r') as f:
             file_data = f.read()
@@ -123,7 +123,7 @@ class TestHandleAttachment:
     def test_handle_attachment_name_format(self, atomic_svc, generate_dummy_payload, tmp_path):
         atomic_svc.payloads_dir = str(tmp_path / 'payloads')
         os.makedirs(atomic_svc.payloads_dir, exist_ok=True)
-        result = atomic_svc._handle_attachment(DUMMY_PAYLOAD_PATH)
+        result = atomic_svc._handle_attachment(generate_dummy_payload)
         parts = result.split('_', 1)
         assert len(parts) == 2
         assert len(parts[0]) == PREFIX_HASH_LENGTH
