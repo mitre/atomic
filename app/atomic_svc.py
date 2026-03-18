@@ -189,10 +189,12 @@ class AtomicService(BaseService):
     @staticmethod
     def _concatenate_shell_commands(command_lines):
         """Concatenate multiple shell command lines. The ; character won't be added at the end of each command if the
-        command line ends in "then" or "do" or already ends with a ; character."""
+        command line ends in "then" or "do" or already ends with a ; character.
+        Whitespace-only lines are skipped to avoid producing stray ';' separators."""
         to_concat = []
-        num_lines = len(command_lines)
-        for index, cmd in enumerate(command_lines):
+        non_empty_lines = [cmd for cmd in command_lines if cmd.strip()]
+        num_lines = len(non_empty_lines)
+        for index, cmd in enumerate(non_empty_lines):
             to_concat.append(cmd)
             if re.search(r'do\s*$', cmd) or re.search(r'then\s*$', cmd) or re.search(r';\s*$', cmd):
                 if not re.search(r'\s+$', cmd):
