@@ -11,7 +11,7 @@ test.describe("Atomic plugin - error states", () => {
   test("should show placeholder count when abilities API fails", async ({ page }) => {
     // Intercept abilities API to simulate failure
     await page.route("**/api/v2/abilities", (route) => {
-      route.fulfill({
+      return route.fulfill({
         status: 500,
         contentType: "application/json",
         body: JSON.stringify({ error: "Internal Server Error" }),
@@ -29,7 +29,7 @@ test.describe("Atomic plugin - error states", () => {
 
   test("page should remain functional when abilities API returns empty array", async ({ page }) => {
     await page.route("**/api/v2/abilities", (route) => {
-      route.fulfill({
+      return route.fulfill({
         status: 200,
         contentType: "application/json",
         body: JSON.stringify([]),
@@ -50,7 +50,7 @@ test.describe("Atomic plugin - error states", () => {
 
   test("page should remain functional when adversaries API fails", async ({ page }) => {
     await page.route("**/api/v2/adversaries", (route) => {
-      route.fulfill({
+      return route.fulfill({
         status: 500,
         contentType: "application/json",
         body: JSON.stringify({ error: "Internal Server Error" }),
@@ -66,7 +66,7 @@ test.describe("Atomic plugin - error states", () => {
 
   test("View Abilities button should still be present when no abilities loaded", async ({ page }) => {
     await page.route("**/api/v2/abilities", (route) => {
-      route.fulfill({
+      return route.fulfill({
         status: 200,
         contentType: "application/json",
         body: JSON.stringify([]),
@@ -85,7 +85,7 @@ test.describe("Atomic plugin - error states", () => {
     // Simulate slow response
     await page.route("**/api/v2/abilities", async (route) => {
       await new Promise((r) => setTimeout(r, 5_000));
-      route.fulfill({
+      return route.fulfill({
         status: 200,
         contentType: "application/json",
         body: JSON.stringify([]),
@@ -106,7 +106,7 @@ test.describe("Atomic plugin - error states", () => {
 
   test("page should not crash with malformed API response", async ({ page }) => {
     await page.route("**/api/v2/abilities", (route) => {
-      route.fulfill({
+      return route.fulfill({
         status: 200,
         contentType: "application/json",
         body: "not valid json",

@@ -62,8 +62,11 @@ test.describe("Atomic plugin - abilities display", () => {
     const countText = page.locator(".is-size-1, h1.is-size-1").first();
     await expect(countText).toBeVisible({ timeout: 15_000 });
 
-    // Wait for count to potentially become a number (may stay --- if no abilities)
-    await page.waitForTimeout(5_000);
+    // Wait until count text changes from the initial "---" placeholder to a number,
+    // or confirms it stays "---" if no atomic abilities are ingested.
+    await expect(countText).not.toHaveText("---", { timeout: 15_000 }).catch(() => {
+      // It's acceptable for the count to remain "---" when no abilities are ingested.
+    });
     const text = await countText.textContent();
     // Should be either a valid number or "---" (if no atomic abilities ingested)
     expect(text?.trim()).toMatch(/^(\d+|---)$/);
