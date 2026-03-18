@@ -1,6 +1,6 @@
 import os
 import pytest
-from unittest.mock import MagicMock, AsyncMock, patch
+from unittest.mock import MagicMock, AsyncMock, patch, PropertyMock
 
 
 class TestHookModuleAttributes:
@@ -46,9 +46,10 @@ class TestHookEnable:
         }
 
         with patch.object(hook, 'data_dir', '/tmp/atomic_test_hook_data'), \
-             patch('os.listdir', return_value=['abilities', 'other']):
+             patch('os.listdir', return_value=['abilities', 'other']), \
+             patch('hook.AtomicGUI') as mock_gui_cls:
             await hook.enable(services)
-            # If abilities already exists, no cloning or populating should happen
+            mock_gui_cls.assert_called_once_with(services, hook.name, hook.description)
 
     @pytest.mark.asyncio
     async def test_enable_ingests_when_no_abilities(self):
@@ -109,7 +110,7 @@ class TestHookEnable:
 
         mock_app = MagicMock()
         mock_app_svc = MagicMock()
-        mock_app_svc.application = mock_app
+        type(mock_app_svc).application = PropertyMock(return_value=mock_app)
 
         services = {
             'auth_svc': MagicMock(),
@@ -121,4 +122,4 @@ class TestHookEnable:
              patch('os.listdir', return_value=['abilities']), \
              patch('hook.AtomicGUI'):
             await hook.enable(services)
-            _ = mock_app_svc.application  # verify it was accessed
+            type(mock_app_svc).application.assert_called()

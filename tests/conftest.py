@@ -157,12 +157,10 @@ def atomic_svc():
 
 
 @pytest.fixture
-def generate_dummy_payload():
-    with open(DUMMY_PAYLOAD_PATH, 'w') as f:
-        f.write(DUMMY_PAYLOAD_CONTENT)
-    yield DUMMY_PAYLOAD_PATH
-    if os.path.exists(DUMMY_PAYLOAD_PATH):
-        os.remove(DUMMY_PAYLOAD_PATH)
+def generate_dummy_payload(tmp_path):
+    payload_path = tmp_path / 'dummyatomicpayload'
+    payload_path.write_text(DUMMY_PAYLOAD_CONTENT)
+    yield str(payload_path)
 
 
 @pytest.fixture
