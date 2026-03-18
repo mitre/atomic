@@ -1,5 +1,6 @@
 import hashlib
 import os
+import re
 import pytest
 
 from plugins.atomic.app.atomic_svc import AtomicService
@@ -187,7 +188,8 @@ class TestAtomicSvc:
         # ability command — matching the double-space pattern of the actual bug report.
         commands = 'if [ -x "$(command -v ip)" ]; then : ; else apt-get install iproute2 -y; fi;\n  \n  ip neighbour show'
         result = AtomicService._handle_multiline_commands(commands, 'sh')
-        assert ';  ;' not in result, f"Unexpected stray semicolon (double-space) in: {result!r}"
+        assert not re.search(r';\s+;', result), \
+            f"Unexpected consecutive semicolons with only whitespace between them in: {result!r}"
         assert 'ip neighbour show' in result
 
     def test_use_default_inputs(self, atomic_svc, atomic_test):
