@@ -76,5 +76,5 @@ After clicking yes, it will then take some time for the abilities to complete re
 
 ### Additional Note
 - When importing tests from Atomic Red Team, this plugin also catches `$PathToAtomicsFolder` usages pointing to an existing file.  It then imports the files as payloads and fixes path usages. Note other usages are not handled. If a path with `$PathToAtomicsFolder` points to an existing directory or an unexisting file, we will not process it any further and ingest it "as it is". Examples of such usages below:
--- https://github.com/redcanaryco/atomic-red-team/blob/a956d4640f9186a7bd36d16a63f6d39433af5f1d/atomics/T1022/T1022.yaml#L99
--- https://github.com/redcanaryco/atomic-red-team/blob/ab0b391ac0d7b18f25cb17adb330309f92fa94e6/atomics/T1056/T1056.yaml#L24
+- https://github.com/redcanaryco/atomic-red-team/blob/a956d4640f9186a7bd36d16a63f6d39433af5f1d/atomics/T1022/T1022.yaml#L99
+- https://github.com/redcanaryco/atomic-red-team/blob/ab0b391ac0d7b18f25cb17adb330309f92fa94e6/atomics/T1056/T1056.yaml#L24
