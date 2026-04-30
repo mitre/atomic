@@ -121,7 +121,7 @@ class AtomicService(BaseService):
         payload_name = os.path.basename(attachment_path)
         # to avoid collisions between payloads with the same name
         with open(attachment_path, 'rb') as f:
-            h = hashlib.md5(f.read()).hexdigest()
+            h = hashlib.md5(f.read(), usedforsecurity=False).hexdigest()
         payload_name = h[:PREFIX_HASH_LEN] + '_' + payload_name
         shutil.copyfile(attachment_path, os.path.join(self.payloads_dir, payload_name), follow_symlinks=False)
         return payload_name
@@ -189,10 +189,12 @@ class AtomicService(BaseService):
     @staticmethod
     def _concatenate_shell_commands(command_lines):
         """Concatenate multiple shell command lines. The ; character won't be added at the end of each command if the
-        command line ends in "then" or "do" or already ends with a ; character."""
+        command line ends in "then" or "do" or already ends with a ; character.
+        Whitespace-only lines are skipped to avoid producing stray ';' separators."""
         to_concat = []
-        num_lines = len(command_lines)
-        for index, cmd in enumerate(command_lines):
+        non_empty_lines = [cmd for cmd in command_lines if cmd.strip()]
+        num_lines = len(non_empty_lines)
+        for index, cmd in enumerate(non_empty_lines):
             to_concat.append(cmd)
             if re.search(r'do\s*$', cmd) or re.search(r'then\s*$', cmd) or re.search(r';\s*$', cmd):
                 if not re.search(r'\s+$', cmd):
@@ -301,7 +303,7 @@ class AtomicService(BaseService):
         """
         Return True if an ability was saved.
         """
-        ability_id = hashlib.md5(json.dumps(test).encode()).hexdigest()
+        ability_id = hashlib.md5(json.dumps(test).encode(), usedforsecurity=False).hexdigest()
 
         tactics_li = self.technique_to_tactics.get(entries['attack_technique'], ['redcanary-unknown'])
         tactic = 'multiple' if len(tactics_li) > 1 else tactics_li[0]
@@ -336,7 +338,7 @@ class AtomicService(BaseService):
                 os.makedirs(d)
             file_path = os.path.join(d, '%s.yml' % ability_id)
             with open(file_path, 'w') as f:
-                f.write(yaml.dump([data]))
+                f.write(yaml.dump([data], explicit_start=True, sort_keys=False))
             return True
 
         return False
