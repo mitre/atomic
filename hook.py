@@ -13,7 +13,6 @@ data_dir = os.path.join('plugins', 'atomic', 'data')
 
 async def enable(services):
     atomic_gui = AtomicGUI(services, name, description)
-    app = services.get('app_svc').application
 
     # we only ingest data once, and save new abilities in the data/ folder of the plugin
     if "abilities" not in os.listdir(data_dir):

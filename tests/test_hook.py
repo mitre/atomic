@@ -1,6 +1,6 @@
 import os
 import pytest
-from unittest.mock import MagicMock, AsyncMock, patch, PropertyMock
+from unittest.mock import MagicMock, AsyncMock, patch
 
 
 class TestHookModuleAttributes:
@@ -103,23 +103,3 @@ class TestHookEnable:
             # AtomicService should NOT be instantiated when abilities dir exists
             mock_svc_cls.assert_not_called()
 
-    @pytest.mark.asyncio
-    async def test_enable_accesses_app(self):
-        """enable() should access services['app_svc'].application."""
-        import hook
-
-        mock_app = MagicMock()
-        mock_app_svc = MagicMock()
-        type(mock_app_svc).application = PropertyMock(return_value=mock_app)
-
-        services = {
-            'auth_svc': MagicMock(),
-            'data_svc': MagicMock(),
-            'app_svc': mock_app_svc,
-        }
-
-        with patch.object(hook, 'data_dir', '/tmp/atomic_test_hook_data'), \
-             patch('os.listdir', return_value=['abilities']), \
-             patch('hook.AtomicGUI'):
-            await hook.enable(services)
-            type(mock_app_svc).application.assert_called()
