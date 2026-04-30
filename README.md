@@ -1,4 +1,4 @@
-# MITRE Caldera plugin: Atomic
+# MITRE Caldera plugin: Atomic 
 
 ## Overview:
 
