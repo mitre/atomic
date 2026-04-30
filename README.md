@@ -34,7 +34,7 @@ Atomic-level detection validation
 
 ## Dependencies/Requirements:
 
-1. Python 3.8+ with the following libraries installed:
+1. Python 3.10+ with the following libraries installed:
 - PyYAML - https://pyyaml.org/wiki/PyYAML
 - STIX2 - https://github.com/oasis-open/cti-python-stix2
 2. Atomic-Caldera requires the following repositories be stored locally somewhere:
