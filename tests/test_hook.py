@@ -110,7 +110,8 @@ class TestHookEnable:
 
         mock_app = MagicMock()
         mock_app_svc = MagicMock()
-        type(mock_app_svc).application = PropertyMock(return_value=mock_app)
+        mock_application_prop = PropertyMock(return_value=mock_app)
+        type(mock_app_svc).application = mock_application_prop
 
         services = {
             'auth_svc': MagicMock(),
@@ -122,4 +123,4 @@ class TestHookEnable:
              patch('os.listdir', return_value=['abilities']), \
              patch('hook.AtomicGUI'):
             await hook.enable(services)
-            type(mock_app_svc).application.assert_called()
+            mock_application_prop.assert_called()
