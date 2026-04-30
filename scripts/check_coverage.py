@@ -18,6 +18,10 @@ def main():
     for cmd in [['coverage', 'combine'], ['coverage', 'xml'], ['coverage', 'report']]:
         result = subprocess.run(cmd)
         if result.returncode != 0:
+            print(
+                f'Command {" ".join(cmd)!r} failed with exit code {result.returncode}',
+                file=sys.stderr,
+            )
             sys.exit(result.returncode)
 
 
