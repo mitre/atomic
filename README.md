@@ -18,28 +18,29 @@ Atomic-level detection validation
 
 ## Installation:
 
-1. Clone the repository to MITRE's Caldera "plugins" folder:
-`cd <path to caldera/plugins>`
-`git clone https://github.com/xenoscr/atomiccaldera.git`
-2. Change directories:
-`cd atomiccaldera`
-3. Install required Python modules:
-`pip install -r requirements.txt`
-4. Clone the Red Canary Atomic Red Team repository:
-`git clone https://github.com/redcanaryco/atomic-red-team.git`
-5. Clone the MITRE CTI repository:
-`git clone https://github.com/mitre/cti.git`
-6. Edit the `conf/artconf.yml` file to update the paths to point to your Atomic Red Team and CTI repositories.
-7. Edit Caldera's `local.yml` file and add `atomiccaldera` to the plugins section.
+The Atomic plugin ships with CALDERA as a default plugin (a git submodule under
+`plugins/atomic`). To add it manually:
+
+1. Clone this repository into CALDERA's `plugins` folder:
+`cd <path to caldera>/plugins`
+`git clone https://github.com/mitre/atomic.git`
+2. Enable the plugin by adding `- atomic` to the `plugins:` list in CALDERA's
+`conf/local.yml` (or `conf/default.yml`).
+3. Restart CALDERA.
+
+On first load the plugin automatically clones Red Canary's Atomic Red Team
+repository into `plugins/atomic/data/atomic-red-team` and imports the tests as
+abilities — no manual cloning, requirements file, or path configuration is
+required. The ATT&CK technique-to-tactic mapping is read from the
+`enterprise-attack.json` file bundled inside that same repository, so no separate
+CTI repository is needed. (This first import takes a while; see "Getting Started"
+below.)
 
 ## Dependencies/Requirements:
 
-1. Python 3.8+ with the following libraries installed:
-- PyYAML - https://pyyaml.org/wiki/PyYAML
-- STIX2 - https://github.com/oasis-open/cti-python-stix2
-2. Atomic-Caldera requires the following repositories be stored locally somewhere:
-- https://github.com/redcanaryco/atomic-red-team
-- https://github.com/mitre/cti
+- `git` available on the PATH (used to clone the Atomic Red Team repository).
+- Python dependencies are provided by CALDERA core (e.g. PyYAML); the plugin has
+no separate requirements file or install step.
 
 ## Getting Started:
 
