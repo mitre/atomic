@@ -77,11 +77,13 @@ class AtomicService(BaseService):
 
     async def _update_atomic_red_team_repo(self):
         """
-        Fast-forward an existing shallow ART checkout to the latest upstream HEAD.
+        Fast-forward an existing shallow ART checkout to the latest upstream HEAD
+        and heal the bundled enterprise-attack.json if it went missing.
 
-        A `git reset --hard` also restores the bundled enterprise-attack.json if
-        it went missing. Any failure (no network, git absent, corrupt checkout)
-        is logged and swallowed so the existing on-disk copy keeps working.
+        Updating to the latest commit needs network and is best-effort: failures
+        (offline, git absent, corrupt checkout) are logged and swallowed so the
+        on-disk copy keeps working. Restoring a deleted tracked file (eg. the
+        STIX) is done from the local git object store and works offline.
         """
         try:
             run(['git', 'fetch', '--depth', '1', 'origin', 'HEAD'],
@@ -92,14 +94,27 @@ class AtomicService(BaseService):
                          stdout=PIPE, stderr=DEVNULL, text=True).stdout.strip()
             if local == remote:
                 self.log.debug('Atomic Red Team repo already up to date')
-                return
-            self.log.debug('updating Atomic Red Team repo to latest')
-            run(['git', 'reset', '--hard', 'FETCH_HEAD'],
-                cwd=self.repo_dir, check=True, stdout=DEVNULL, stderr=DEVNULL)
-            self.log.debug('Atomic Red Team repo updated')
+            else:
+                self.log.debug('updating Atomic Red Team repo to latest')
+                run(['git', 'reset', '--hard', 'FETCH_HEAD'],
+                    cwd=self.repo_dir, check=True, stdout=DEVNULL, stderr=DEVNULL)
+                self.log.debug('Atomic Red Team repo updated')
         except (CalledProcessError, OSError) as e:
             self.log.warning('Could not update Atomic Red Team repo (offline?): %s. '
                              'Using the existing on-disk copy.' % e)
+
+        # Heal a missing bundled STIX even when the repo is otherwise up to date
+        # (eg. the file was deleted but no new upstream commit exists to reset
+        # to). Restoring a tracked file from the local checkout needs no network.
+        stix_rel = os.path.join('atomic_red_team', 'enterprise-attack.json')
+        if not os.path.isfile(os.path.join(self.repo_dir, stix_rel)):
+            self.log.debug('enterprise-attack.json missing; restoring from local checkout')
+            try:
+                run(['git', 'checkout', '--', stix_rel],
+                    cwd=self.repo_dir, check=True, stdout=DEVNULL, stderr=DEVNULL)
+            except (CalledProcessError, OSError) as e:
+                self.log.warning('Could not restore enterprise-attack.json from local '
+                                 'checkout: %s' % e)
 
     async def populate_data_directory(self, path_yaml=None):
         """
